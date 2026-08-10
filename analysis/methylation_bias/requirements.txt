@@ -1,0 +1,9 @@
+# Versions used for the published run. Later minor releases should work;
+# NumPy 2.x is required (the code relies on numpy.random.Generator).
+numpy==2.3.5
+pandas==2.3.3
+scipy==1.16.3
+matplotlib==3.10.6
+pyarrow==21.0.0
+# validation only (scripts/02b_validate.py)
+statsmodels==0.14.5

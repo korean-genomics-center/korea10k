@@ -1,0 +1,18 @@
+# Input data: individual-level, not redistributable. See data/README.md.
+per_cpg_beta_by_genotype.with_values.filtered.tsv
+*.tsv.gz
+
+# Generated intermediates
+data/betas.npz
+data/site_selection.npy
+
+# Generated outputs. The directories themselves are kept, because the scripts
+# write into them and do not create them.
+results/*
+figures/*
+!results/.gitkeep
+!figures/.gitkeep
+
+__pycache__/
+*.pyc
+.DS_Store
