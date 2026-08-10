@@ -37,4 +37,4 @@ dict_rename = dict(zip(df_rename[0], df_rename[1]))
 
 df_ori_filt_new_depth["SampleID"] = df_ori_filt_new_depth["SampleID"].apply(lambda x: dict_rename.get(str(x), "NA"))
 
-df_ori_filt_new_depth.to_excel(f"{WORK_DIR}/genome/paper/Supplementary_Table6.xlsx", index=False)
+df_ori_filt_new_depth.to_excel(f"{WORK_DIR}/genome/paper/Supplementary_Table5.xlsx", index=False)

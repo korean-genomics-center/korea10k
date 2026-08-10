@@ -323,8 +323,8 @@ plt.tight_layout()
 
 dir_figure = f"{PROJECT_DIR}/Analysis/Revision/Draw_Figure/Figures"
 os.makedirs(dir_figure, exist_ok=True)
-fig.savefig(os.path.join(dir_figure, "Figure1.png"), dpi=300, bbox_inches="tight")
-fig.savefig(os.path.join(dir_figure, "Figure1.pdf"), bbox_inches="tight")
+fig.savefig(os.path.join(dir_figure, "Figure2.png"), dpi=300, bbox_inches="tight")
+fig.savefig(os.path.join(dir_figure, "Figure2.pdf"), bbox_inches="tight")
 
 plt.show()
 

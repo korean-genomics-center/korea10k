@@ -36,5 +36,5 @@ list_clinicals
 path_codebook = f"{WORK_DIR}/genome/Korea10KGenome/Resources/MetaData/ClinicalData10K/10K/KU10K_Clinical_Data_Codebook_Ver2.4.xlsx"
 df_codebook = pd.read_excel(path_codebook, engine="openpyxl")
 df_codebook_filt = df_codebook[["Category",	"Type",	"Item", "Item_info", "Normal_range_man", "Normal_range_woman",	"Unit",	"Normal_range_source"]]
-df_codebook_filt.to_excel(f"{WORK_DIR}/genome/paper/Supplementary_Table3.xlsx")
+df_codebook_filt.to_excel(f"{WORK_DIR}/genome/paper/Supplementary_Table1.xlsx")
 # %%
