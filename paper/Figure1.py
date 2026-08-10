@@ -1,323 +1,212 @@
-# %% 
-import os
-import pickle
+# %%
+from collections import Counter
 
 import matplotlib.gridspec as gridspec
+import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
-import matplotlib.ticker as mticker
 import numpy as np
 import pandas as pd
 import seaborn as sns
-from matplotlib.ticker import FuncFormatter
+from matplotlib.patches import FancyArrowPatch, Patch, Rectangle
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 
+# %%
+path_cohort = "/BiO/Access/kyungwhan1998/genome/depthCoverage/10243sample_list.xlsx"
+df_cohort = pd.read_excel(path_cohort)
 
-# -------------------- Helper --------------------
-def load_pickle(path_pkl):
-    with open(path_pkl, "rb") as f:
-        return pickle.load(f)
+# %% [QC]
+path_excel = "/BiO/Research/Korea10KGenome/Resources/MetaData/Sequencing/KOREA10K_DATA_TABLE.xlsx"
+df_excel = pd.read_excel(path_excel)
+dict_rd_id_conv = dict(zip(df_excel["KU10K-ID"], df_excel["RD_ID"]))
+dict_rd_id_conv = {k: str(int(v)) for k, v in dict_rd_id_conv.items() if str(v) != "nan"}
+dict_kpgp_id_conv = dict(zip(df_excel["KU10K-ID"], df_excel["KPGP_ID"]))
+dict_kpgp_id_conv = {k: str(v) for k, v in dict_kpgp_id_conv.items() if str(v) != "nan"}
+dict_kpgp_id_conv_filt = {k: str(v) for k, v in dict_kpgp_id_conv.items() if not "U10K" in str(k)}
 
-# -------------------- Plotting settings --------------------
-plt.rcParams.update({
-    "font.size": 18,
-    "axes.linewidth": 1.5,
-    "axes.labelpad": 6,
-    "xtick.direction": "out",
-    "ytick.direction": "out",
-    "xtick.labelsize": 14,
-    "ytick.labelsize": 14,
-    "figure.dpi": 300
-})
+dict_4k_id_conv = dict()
+dict_4k_id_conv.update(dict_rd_id_conv)
+dict_4k_id_conv.update(dict_kpgp_id_conv_filt)
 
-display_label_map = {
-    "Singleton": "Singleton",
-    "Doubleton": "Doubleton",
-    "Extremely Rare": "Ultra-Rare",
-    "Very Rare": "Very Rare",
-    "Rare": "Rare",
-    "Common": "Common",
-    "Very Common": "Very Common",
-    "Total": "Total"
+# %%
+df_cohort["SampleID"] = df_cohort["ID"].apply(lambda x: dict_4k_id_conv.get(x, x))
+
+path_vcf_4k = "/BiO/Store/KOGIC/Jellyfish/KOGIC-KU10K-Genome-2019-01/Results/JointCall.to.hg38.with.AdapterTrimmedRead.for.BWA.mem.by.GATK.HaplotypeCaller/Korea4K.4157Samples.VQSR.Filtered.Related.Rare.Diabetes.NonKorean.Inculdes.KOREFs.Filtered.AvgAB.1_0/chr14.recal.vcf"
+list_sample_4k = list()
+with open(path_vcf_4k, mode="r") as fr:
+    for line in fr:
+        if str(line).startswith("#CHROM"):
+            record = line.rstrip("\n").split("\t")
+            samples = record[9:]
+            list_sample_4k.extend(samples)
+            break
+
+# %%
+df_cohort_set_ind = df_cohort.set_index("SampleID")
+df_cohort_4k = df_cohort_set_ind.loc[list_sample_4k]
+ 
+# %%
+list_samples_exclude = ["KU10K-10433", "KU10K-10689", "KU10K-04846", "KU10K-10007"]
+dict_cohort = dict(zip(df_cohort["ID"], df_cohort["모집군"]))
+
+dict_cohort_filt = dict()
+for sample, cohort in dict_cohort.items():
+    if sample not in list_samples_exclude:
+        dict_cohort_filt[sample] = cohort
+
+dict_cnt = dict(Counter(dict_cohort_filt.values()))
+
+total_cnt = 0
+diagnosed_cnt = 0
+for category, count in dict_cnt.items():
+    if category != "일반":
+        diagnosed_cnt += count
+    total_cnt += count
+
+dict_cnt["질환군"] = diagnosed_cnt
+dict_cnt["총합"] = total_cnt
+
+df_pheno = pd.DataFrame.from_dict(dict_cnt, orient="index").reset_index()
+
+df_pheno.columns = ["Category", "Count"]
+
+# %% 
+import json
+
+path_translate_dict = "/BiO/Access/kyungwhan1998/genome/depthCoverage/convert_disease_category_kor_to_eng.json"
+with open(path_translate_dict, mode="rb") as fr:
+    translate_dict = json.load(fr)
+df_pheno["Category_EN"] = df_pheno["Category"].map(translate_dict)
+
+# %% Split summary and disease-specific data
+summary_df = df_pheno[df_pheno["Category_EN"].isin(["Healthy", "Diagnosed"])]
+
+disease_df = df_pheno.loc[1:15].copy().sort_values("Count", ascending=False)
+
+# %% Assign major disease categories
+def assign_group(cat):
+    if cat in ["Myocardial infarction", "Angina"]:
+        return "Cardiovascular disorder"
+    elif cat in ["Depression", "Anxiety Disorder", "Suicide attempt", "Suicidal ideation", "Sleep disorder"]:
+        return "Mental & mood disorder"
+    elif "cancer" in cat.lower():
+        return "Cancer"
+    elif "diabetic" in cat.lower():
+        return "Metabolic disorder"
+    elif cat in ["Rare disorder", "Congenital hearing loss"]:
+        return "Others"
+    else:
+        return "Others"
+
+disease_df["Major_Group"] = disease_df["Category_EN"].apply(assign_group)
+
+# %% Group summary
+summary_groups = (
+    disease_df.groupby("Major_Group")["Count"].sum()
+    .reindex(["Cardiovascular disorder", "Mental & mood disorder", "Cancer", "Metabolic disorder", "Others"])
+    .dropna()
+    .reset_index()
+)
+
+total_count = summary_groups["Count"].sum()
+summary_groups["Percent"] = summary_groups["Count"] / total_count * 100
+
+# %% Color palette
+group_colors = {
+    "Cardiovascular disorder": "#B10101",
+    "Mental & mood disorder": "#008FDC",
+    "Cancer": "#0F9200",
+    "Metabolic disorder": "#F57600",
+    "Others": "#8D0088"
 }
+disease_df["Color"] = disease_df["Major_Group"].map(group_colors)
 
-# -------------------- Figure layout --------------------
-fig = plt.figure(figsize=(15, 13))
-gs = gridspec.GridSpec(2, 2, 
-                       figure=fig,
-                       height_ratios=[2.5, 2.5],
-                       width_ratios=[1, 1],
-                       hspace=0.35, 
-                       wspace=0.25)
+# %% 
+plt.rcParams["font.size"] = 18
+fig = plt.figure(figsize=(10, 10))
+gs = gridspec.GridSpec(2, 2, height_ratios=[1, 1.5], width_ratios=[1,1], hspace=0.1, wspace=0)
 
-axA = fig.add_subplot(gs[0:1, 0])
+# ----------------------------------------------------------------------
+# Panel A: Recruitment Flowchart (upper left)
+# ----------------------------------------------------------------------
+axA = fig.add_subplot(gs[0, 0])
+axA.set_xlim(0, 10)
+axA.set_ylim(0, 5)
+axA.axis("off")
+axA.text(-0.9, 1.05, "A", transform=axA.transAxes,
+         fontsize=plt.rcParams["font.size"]+10, fontweight='bold', va='bottom', ha='left')
+
+# ----------------------------------------------------------------------
+# Panel B: Healthy vs Diagnosed Pie (upper right)
+# ----------------------------------------------------------------------
 axB = fig.add_subplot(gs[0, 1])
-axC = fig.add_subplot(gs[1, 0])
-axD = fig.add_subplot(gs[1, 1])
-for ax in [axA, axB, axC, axD]:
-    ax.xaxis.label.set_weight("bold")
-    ax.yaxis.label.set_weight("bold")
+wedges, texts, autotexts = axB.pie(
+    summary_df["Count"], 
+    labels=summary_df["Category_EN"], 
+    autopct=lambda p: f"{int(round(p * summary_df['Count'].sum() / 100)):,}\n({p:.1f}%)", 
+    startangle=90, 
+    pctdistance=0.5, 
+    colors=["grey", "firebrick"], 
+    wedgeprops={"linewidth": 3, 
+                "edgecolor": "k"}, 
+    textprops={"weight": "bold", 
+               "fontsize": plt.rcParams["font.size"], 
+               "color": "white"} ) 
 
-def widen_axis(ax, factor=1.15, anchor="center"):
-    pos = ax.get_position()
-    old_width = pos.width
-    new_width = old_width * factor
+axB.set_title( f'Korea10K: {int(df_pheno.loc[df_pheno["Category_EN"] == "Total", "Count"].values[0]):,} samples', fontsize=plt.rcParams["font.size"] + 6, fontweight="bold", ha="center")
 
-    if anchor == "left":
-        new_x0 = pos.x0
-    elif anchor == "right":
-        new_x0 = pos.x0 - (new_width - old_width)
-    elif anchor == "center":
-        new_x0 = pos.x0 - (new_width - old_width) / 2
-    else:
-        raise ValueError("anchor must be 'left', 'center', or 'right'")
-
-    ax.set_position([new_x0, pos.y0, new_width, pos.height])
+legend_handles = [Patch(facecolor=color, edgecolor='k', label=label)
+                  for label, color in zip(summary_df["Category_EN"], ["grey", "firebrick"])]
 
 
-def heighten_axis(ax, factor=1.15, anchor="bottom"):
-    pos = ax.get_position()
-    old_height = pos.height
-    new_height = old_height * factor
+axB.legend(handles=legend_handles,bbox_to_anchor=(1.0, 0.5), loc="center left", fontsize=plt.rcParams["font.size"], frameon=False)
+           
+axB.text(-0.6, 1.05, "B", transform=axB.transAxes,
+         fontsize=plt.rcParams["font.size"]+10, fontweight='bold', va='bottom', ha='left')
 
-    if anchor == "bottom":
-        new_y0 = pos.y0
-    elif anchor == "top":
-        new_y0 = pos.y0 - (new_height - old_height)
-    elif anchor == "center":
-        new_y0 = pos.y0 - (new_height - old_height) / 2
-    else:
-        raise ValueError("anchor must be 'bottom', 'center', or 'top'")
-
-    ax.set_position([pos.x0, new_y0, pos.width, new_height])
-    
-sns.despine(left=False, bottom=False)
-
-# -------------------- Panel A: Variant count --------------------
-dir_variant = "/BiO/Access/kyungwhan1998/genome/variant/Data"
-count_freq_reported = load_pickle(os.path.join(dir_variant, "count_freq_reported.pkl"))
-count_freq_novel = load_pickle(os.path.join(dir_variant, "count_freq_novel.pkl"))
-count_freq_all = load_pickle(os.path.join(dir_variant, "count_freq_all.pkl"))
-
-list_xticks = ["Singleton", "Doubleton", "Extremely Rare", "Very Rare", "Rare", "Common", "Very Common"]
-bottom = np.zeros(len(list_xticks))
-
-values_novel = np.array([count_freq_novel[x] for x in list_xticks])
-values_reported = np.array([count_freq_reported[x] for x in list_xticks])
-
-axA.bar(list_xticks, values_novel, bottom=bottom, color="firebrick", label="Novel", edgecolor='k', linewidth=1.5, width=0.9, zorder=2)
-bottom += values_novel
-axA.bar(list_xticks, values_reported, bottom=bottom, color="gray", label="dbSNP", edgecolor='k', linewidth=1.5, width=0.9, zorder=2)
-
-for i, freq in enumerate(list_xticks):
-    total = count_freq_all[freq]
-    axA.annotate(f"{values_novel[i]/total*100:.2f}", (i, (values_novel[i]/2) if values_novel[i]/total > 0.04 else 0.05e7), color='white', ha="center", va="center", weight="bold", fontsize=14)
-    axA.annotate(f"{values_reported[i]/total*100:.2f}", (i, values_novel[i]+ values_reported[i]/2 + (0 if freq != "Common" else 0.05e7)), color='white', ha="center", va="center", weight="bold", fontsize=12)
-    axA.annotate(f"{total/1e6:.1f}M", (i, total + 0.01*max(count_freq_all.values())), ha="center", va="bottom", weight="bold", fontsize=14)
-
-axA.set_xticklabels([display_label_map[x] for x in list_xticks],
-                    rotation=45, rotation_mode="anchor", ha="right", weight="bold")
-axA.set_ylabel("Variant Count", fontsize=plt.rcParams["font.size"], weight="bold")
-axA.set_ylim(top=2.7e7)
-axA.grid(axis="y", linestyle="--", linewidth=0.8, alpha=0.5)
-
-axA.legend(frameon=False, loc="center right", fontsize=plt.rcParams["font.size"]-2, bbox_to_anchor=(1, 0.5))
-
-total_novel = sum(count_freq_novel.values())
-total_reported = sum(count_freq_reported.values())
-ax_pie = inset_axes(axA, width="50%", height="50%", loc='upper center')
-ax_pie.pie([total_novel, total_reported], colors=["firebrick", "gray"], autopct="%1.1f%%",
-           startangle=90, counterclock=False,
-           wedgeprops={"linewidth":2, "edgecolor":"k"},
-           textprops={"weight":"bold", "fontsize": plt.rcParams["font.size"]-2, "color":"white"})
-ax_pie.set_aspect("equal")
-ax_pie.text(0.5, 0.92, f"{(total_novel+total_reported)/1e6:.1f}M", ha="center", va="bottom", weight="bold", fontsize=plt.rcParams["font.size"], transform=ax_pie.transAxes)
-axA.text(-0.18, 1.0, "A", transform=axA.transAxes, fontsize=plt.rcParams["font.size"]+5, fontweight='bold')
-axA.spines['bottom'].set_zorder(10)
-for tick in axA.xaxis.get_major_ticks():
-    tick.label1.set_zorder(10)
-    
-# -------------------- Panel B --------------------
-dir_variant_plot = "/BiO/Access/kyungwhan1998/genome/shapeit/Resources/Data/plot"
-dict_frequency_type_to_mean_line = load_pickle(os.path.join(dir_variant_plot, "dict_frequency_type_to_mean_line.pkl"))
-dict_frequency_type_to_saturation_points = load_pickle(os.path.join(dir_variant_plot, "dict_frequency_type_to_saturation_points.pkl"))
-
-dict_frequency_palette = {
-    "Total": "#8a8a8aff",
-    "Singleton": "#000000ff",
-    "Doubleton": "#78004A",
-    "Extremely Rare": "#cb181d",
-    "Very Rare": "#ff7b00",
-    "Rare": "#0B8100",
-    "Common": "#0026ff",
-    "Very Common": "#3900e3"
-}
-
-list_frequency_type = ["Total", "Singleton", "Doubleton", "Extremely Rare", "Very Rare", "Rare", "Common", "Very Common"]
-
-xlim_padd = 500
-
-highlight_cats = ["Extremely Rare"]
-
-max_samples = 0
-for frequency_cat in list_frequency_type:
-    mean_line = dict_frequency_type_to_mean_line[frequency_cat]["mean"]
-    list_samples = list(range(1, len(mean_line)+1))
-    
-    # Ultra-thin for total curve
-    if frequency_cat.lower() in ["total", "all", "all variants"]:
-        lw = 2
-        zord = 2
-    # Highlighted categories
-    elif frequency_cat in highlight_cats:
-        lw = 8
-        zord = 7
-    # Normal categories
-    else:
-        lw = 4
-        zord = 5
-
-    axB.plot(list_samples, mean_line, color=dict_frequency_palette[frequency_cat],
-         linewidth=lw, label=display_label_map.get(frequency_cat, frequency_cat), alpha=0.7)
-    if max(list_samples) > max_samples:
-        max_samples = max(list_samples)
-axB.set_xlabel("Sample Count", fontsize=plt.rcParams["font.size"], weight="bold")
-axB.set_yscale("log")
-axB.set_ylabel("Variant Count\n(log-scale)", fontsize=plt.rcParams["font.size"], weight="bold")
-axB.grid(axis="both", linestyle="--", linewidth=0.5, alpha=0.5)
-axB.legend(frameon=True, fontsize=16, loc="lower right")
-axB.set_xlim(right=10001)
-axB.text(-0.18, 1.0,"B", transform=axB.transAxes, fontsize=plt.rcParams["font.size"]+5, fontweight='bold')
-
-
-# -------------------- Panel D --------------------
-workdir = "/BiO/Access/kyungwhan1998/genome/shapeit/Results/imputation"
-R2_template = os.path.join(workdir, "corr_results/chr{i}.dose.{panel}.concat.corr.maf_10K_cat_added.txt.gz")
-def calc_squared_with_minus(val): return (1 if val >= 0 else -1) * val**2
-
-df1 = pd.read_csv(R2_template.format(i=2, panel="1K"), sep="\t")
-df2 = pd.read_csv(R2_template.format(i=2, panel="4K"), sep="\t")
-df3 = pd.read_csv(R2_template.format(i=2, panel="10K"), sep="\t")
-for df in [df1, df2, df3]: df["Rsq"] = df["R"].apply(calc_squared_with_minus)
-
-bin_edges = [0,0.0005,0.002,0.005,0.01,0.02,0.05,0.1,0.2,0.5,1.0]
-labels = ["0-0.05","0.05-0.02","0.2-0.5","0.5-1","1-2","2-5","5-10","10-20","20-50","50-100"]
-for df in [df1, df2, df3]: df["AF_bin"]=pd.cut(df["ALT_FREQ"], bins=bin_edges, labels=labels)
-
-agg1 = df1.groupby("AF_bin", observed=True)["Rsq"].mean().reset_index()
-agg2 = df2.groupby("AF_bin", observed=True)["Rsq"].mean().reset_index()
-agg3 = df3.groupby("AF_bin", observed=True)["Rsq"].mean().reset_index()
-
-sns.lineplot(data=agg3, x="AF_bin", y="Rsq", color="crimson", marker="o", markeredgecolor="k", markersize=8, linewidth=4, ax=axC, label="10K", zorder=5)
-
-sns.lineplot(data=agg2, x="AF_bin", y="Rsq", color="limegreen", marker="o", markeredgecolor="k", markersize=8, linewidth=4, ax=axC, label="4K", zorder=4)
-
-sns.lineplot(data=agg1, x="AF_bin", y="Rsq", color="dodgerblue", marker="o", markeredgecolor="k", markersize=8, linewidth=4, ax=axC, label="1K", zorder=3)
-
-axC.set_xlabel("Alt allele frequency (%)", fontsize=plt.rcParams["font.size"], weight="bold")
-axC.set_ylabel("Aggregated R²", fontsize=plt.rcParams["font.size"], weight="bold")
-axC.set_ylim(0.1, 1.19)
-axC.set_xticklabels(labels, rotation=45, ha="right")
-axC.legend(frameon=False, loc="upper right", bbox_to_anchor=(1, 0.6))
-axC.grid(axis="both", linestyle="--", linewidth=0.5, alpha=0.5)
-axC.text(-0.18, 1.0,"C", transform=axC.transAxes, fontsize=plt.rcParams["font.size"]+5, fontweight='bold')
-
-x_positions = range(len(agg1))
-cat_ranges = {
-    "Low\nfrequency": (0, 3),
-    "Common": (3, 6),
-    "Very\ncommon": (6, len(labels)-1)
-}
-
-for label, (start, end) in cat_ranges.items():
-    axC.axvspan(start, end, ymin=0, ymax=0.13, color="white", ec="black", lw=1.0, clip_on=False, zorder=3)
-
-for label, (start, end) in cat_ranges.items():
-    mid = (start + end) / 2
-    axC.text(mid, 0.065, label, transform=axC.get_xaxis_transform(),
-            ha="center", va="center", weight="bold", fontsize=plt.rcParams["font.size"]-3, color="black")
-
-num_variants = [df1.shape[0], df2.shape[0], df3.shape[0]]
-num_variants_m = np.array(num_variants) / 1e6
-
-ax_inset = inset_axes(
-    axC,
-    width="45%",
-    height="17%",
-    loc="upper left",
-    borderpad=2.5
+# ----------------------------------------------------------------------
+# Panel C: Disease Subgroup Bar Chart (bottom row full width)
+# ----------------------------------------------------------------------
+axC = fig.add_subplot(gs[1, :])
+bars = axC.barh(
+    disease_df["Category_EN"],
+    disease_df["Count"],
+    color=disease_df["Color"],
+    edgecolor="k"
 )
+axC.set_xlabel("Number of Samples", fontsize=plt.rcParams["font.size"]+5)
+axC.set_title(f"Disease Subgroups ({sum(disease_df['Count']):,} samples)", fontsize=plt.rcParams["font.size"]+5, fontweight="bold")
+axC.invert_yaxis()
 
-bars = ax_inset.barh(
-    ["1K", "4K", "10K"],
-    num_variants,
-    color=["dodgerblue", "limegreen", "crimson"],
-    edgecolor="k",
-    linewidth=1.2,
-    height=1
+for i, v in enumerate(disease_df["Count"]):
+    axC.text(v + 40, i, f"{v:,}", va="center", fontsize=plt.rcParams["font.size"]+3)
+
+ax_inset = inset_axes(axC, width="35%", height="35%", loc="lower right", borderpad=2)
+ax_inset.barh(
+    summary_groups["Major_Group"],
+    summary_groups["Count"],
+    color=[group_colors[g] for g in summary_groups["Major_Group"]],
+    edgecolor="k"
 )
+ax_inset.set_xticks(np.arange(0, 3200, 1000))
+ax_inset.invert_yaxis()
+ax_inset.set_title("Major Disease Groups", fontsize=plt.rcParams["font.size"]+4, fontweight="bold")
 
-for i, bar in enumerate(bars):
+for i, (count, pct) in enumerate(zip(summary_groups["Count"], summary_groups["Percent"])):
     ax_inset.text(
-        bar.get_width() / 2,
-        bar.get_y() + bar.get_height() / 2,
-        f"{num_variants[i]:,}",
-        ha="center", 
+        count + summary_groups["Count"].max() * 0.02,  # dynamic offset
+        i,
+        f"{count:,} ({pct:.1f}%)",                   # e.g. 2,340 (18.5%)
         va="center",
-        color="white", 
-        weight="bold", 
-        fontsize=15
+        fontsize=plt.rcParams["font.size"]
     )
 
-ax_inset.xaxis.set_major_formatter(FuncFormatter(lambda x, pos: f"{x/1e6:.1f}"))
-ax_inset.set_xlim(0, max(num_variants) * 1.05)
-ax_inset.xaxis.set_major_locator(mticker.MaxNLocator(nbins=6))
+sns.despine(ax=ax_inset, top=True, right=True)
 
-ax_inset.xaxis.tick_top()
-ax_inset.xaxis.set_label_position('top')
+axC.text(-0.45, 1.05, "C", transform=axC.transAxes,
+         fontsize=plt.rcParams["font.size"]+10, fontweight='bold', va='bottom', ha='left')
 
-ax_inset.set_xlabel("Number of imputed variants", fontsize=17, labelpad=13)
-
-ax_inset.text(
-    1.15, 1.0, "1e6",
-    transform=ax_inset.transAxes,
-    ha="right", va="bottom",
-    fontsize=13
-)
-
-ax_inset.tick_params(axis="y", labelsize=15)
-ax_inset.tick_params(axis="x", labelsize=14)
-
-
-ratio_10K_4K = (agg3["Rsq"] - agg2["Rsq"])/agg2["Rsq"]*100
-ratio_10K_1K = (agg3["Rsq"] - agg1["Rsq"])/agg1["Rsq"]*100
-x_positions = range(len(agg1))
-axD.plot(x_positions, ratio_10K_4K, color="orange", marker="o", markeredgecolor="k", markersize=8, label="10K / 4K")
-axD.plot(x_positions, ratio_10K_1K, color="purple", marker="o", markeredgecolor="k", markersize=8, label="10K / 1K")
-axD.set_xticks(x_positions)
-axD.set_xticklabels(labels, rotation=45, ha="right")
-axD.set_ylabel("R² improvement (%)", weight="bold")
-axD.set_ylim(-30, 101)
-axD.grid(axis="both", linestyle="--", linewidth=0.5, alpha=0.5)
-axD.set_xlabel("Alt allele frequency (%)", fontsize=plt.rcParams["font.size"], weight="bold")
-axD.legend(frameon=False, fontsize=18, loc="center right", bbox_to_anchor = (1, 0.6))
-axD.text(-0.18,1.0,"D", transform=axD.transAxes, fontsize=plt.rcParams["font.size"]+5, fontweight='bold')
-
-x_positions = range(len(agg1))
-cat_ranges = {
-    "Low\nfrequency": (0, 3),
-    "Common": (3, 6),
-    "Very\ncommon": (6, len(labels)-1)
-}
-
-for label, (start, end) in cat_ranges.items():
-    axD.axvspan(start, end, ymin=0, ymax=0.15, color="white", ec="black", lw=1.0, clip_on=False, zorder=3)
-
-# Add text annotations below x-axis
-for label, (start, end) in cat_ranges.items():
-    mid = (start + end) / 2
-    axD.text(mid, 0.075, label, transform=axD.get_xaxis_transform(),
-            ha="center", va="center", weight="bold", fontsize=plt.rcParams["font.size"]-3, color="black")
-
+axC.set_ymargin(0)
+sns.despine(ax=axC, top=True, right=True)
 plt.tight_layout()
 plt.show()
 

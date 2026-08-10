@@ -1,420 +1,1011 @@
-#%%
-import math
+# %%
+import os
 import re
-from collections import Counter
-from copy import deepcopy
-from glob import glob
 
+import matplotlib.gridspec as gridspec
+import matplotlib.patches as patches
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
-from matplotlib import pyplot as plt
-from matplotlib.gridspec import GridSpec
-from scipy.stats import chi2_contingency
-from statsmodels.stats.multitest import fdrcorrection
+from matplotlib.patches import Patch
 
-#%%
-list_cpgrel_type = ["CG context Creation", "CG context Elimination", "Both Creation/Elimination", "Unrelated"]
-dict_cpgrel_to_color = {
-    "CG context Creation":"mediumblue",
-    "CG context Elimination":"firebrick",
-    "Both Creation/Elimination": "darkviolet",
-    "Unrelated" : "darkgray"
-}
-dict_chisq_color = {
-    "nonsig":"lightgray",
-    "higher":"firebrick",
-    "lower":"mediumblue"
-}
+# %%
+plt.rcParams.update({
+    "font.size": 18,
+    "axes.linewidth": 1.2,
+    "axes.labelpad": 6,
+    "xtick.direction": "out",
+    "ytick.direction": "out"
+})
 
-#%%
-population_compare = "Superpopulation_EUR"
-window_size = 10000
+plt.rcParams.update({
+    "font.size": 18,
+    "axes.linewidth": 1.2,
+    "axes.labelpad": 6,
+    "xtick.direction": "out",
+    "ytick.direction": "out"
+})
 
-path_var_gcount = "/BiO/Research/Korea10KGenome/Results/Plink.JointCall.to.hg38.with.AdapterTrimmedRead.for.BWA.mem.by.GATK.HaplotypeCaller.BoundaryMerged.RemoveABHetOutlier2STD.VQSR.PASS/Plink_Final/chromosome_merged.qc_filtered.kinship_filtered.nonKorean_filtered/Merged_chr.biallelic.Autosome.varname.geno_0.01.mind_0.1.hwe_1e6.het_3std.excesshet_60.abhet_0.4.abhom_0.1.adsupport_0.9.kinship_3rd.nonKorean.mac1.QC.gcount"
-path_var_afreq = "/BiO/Research/Korea10KGenome/Results/Plink.JointCall.to.hg38.with.AdapterTrimmedRead.for.BWA.mem.by.GATK.HaplotypeCaller.BoundaryMerged.RemoveABHetOutlier2STD.VQSR.PASS/Plink_Final/chromosome_merged.qc_filtered.kinship_filtered.nonKorean_filtered/Merged_chr.biallelic.Autosome.varname.geno_0.01.mind_0.1.hwe_1e6.het_3std.excesshet_60.abhet_0.4.abhom_0.1.adsupport_0.9.kinship_3rd.nonKorean.mac1.QC.acount"
-path_varnames_appeared = "/BiO/Research/Korea10KGenome/Workspace/Yoonsung/Results/Methyl_SNP_Comparison/SNP_related_to_CpG/QC_Filtered/nonKorean_mac1_Filtered/merged.CpG_appeared.Numeric_VCF.QC_Filtered.Filter_nonKorean.varnames"
-path_varnames_disappeared = "/BiO/Research/Korea10KGenome/Workspace/Yoonsung/Results/Methyl_SNP_Comparison/SNP_related_to_CpG/QC_Filtered/nonKorean_mac1_Filtered/merged.CpG_disappeared.Numeric_VCF.QC_Filtered.Filter_nonKorean.varnames"
+height_pca = 100
+hspaces = [28,4,28,28,28]
+height_adm = 22
+height_prop = 40
 
-path_hg38 = "/BiO/Research/Korea10KGenome/Resources/Reference/chromosome/hg38.fa"
-path_cpgs_appeared_format = "/BiO/Research/Korea10KGenome/Workspace/Yoonsung/Results/Methyl_SNP_Comparison/SNP_related_to_CpG/QC_Filtered/nonKorean_mac1_Filtered/Popular_Filtered/*.CpG_appeared.Numeric_VCF.QC_Filtered.Filter_nonKorean.Popular_Filtered_80.tsv"
-path_cpgs_disappeared_format = "/BiO/Research/Korea10KGenome/Workspace/Yoonsung/Results/Methyl_SNP_Comparison/SNP_related_to_CpG/QC_Filtered/nonKorean_mac1_Filtered/Popular_Filtered/*.CpG_disappeared.Numeric_VCF.QC_Filtered.Filter_nonKorean.Popular_Filtered_80.tsv"
-
-path_1kgp_comparison_result = "/BiO/Research/Korea10KGenome/Workspace/Yoonsung/Results/Methyl_SNP_Comparison/Compare_AF_with_Other_Population/Merged_chr.CpG_related.Summary.QC_Filtered.Filt_nonKorean.Popular_Filtered_80.window_10000.diff_10perc.AF_Compared_1KGP_Superpopulation_EUR.tsv"
-#%%
-def add_vartype_annotation(table):
-    table_ = table.copy()
-    table_snv = table_[np.logical_and(table_["REF"].apply(len) == 1, table_["ALT"].apply(len) == 1)]
-    table_ins = table_[table_["ALT"].apply(len) > 1]
-    table_del = table_[table_["REF"].apply(len) > 1]
-    
-    table_snv.loc[:, "VarType"] = "SNV"
-    table_ins.loc[:, "VarType"] = "INS"
-    table_del.loc[:, "VarType"] = "DEL"
-    
-    table_snv.loc[:, "Substitution"] = list(map(lambda val1, val2: f"{val1}>{val2}", table_snv["REF"], table_snv["ALT"]))
-    
-    table_ins.loc[:, "Length"] = table_ins["ALT"].apply(len) - 1
-    table_del.loc[:, "Length"] = table_del["REF"].apply(len) - 1
-    
-    table_annot = pd.concat([table_snv, table_ins, table_del]).sort_values(by = ["#CHROM", "ID"]).reset_index(drop = True)
-    return table_annot
-
-def get_cpg_rel_status(is_excl, is_incl):
-    if is_excl:
-        if is_incl:
-            return "Both Creation/Elimination"
-        else:
-            return "CG context Elimination" 
-    elif is_incl:
-        return "CG context Creation"
-    else:
-        return "Unrelated"
-
-def read_fasta_as_dict(path_fasta):
-    dict_fasta_to_lines = dict()
-
-    header = None
-    with open(path_fasta, 'r') as fr:
-        for line in fr:
-            if line.startswith('>'):
-                header = line.strip('\n')[1:].split()[0]
-                assert dict_fasta_to_lines.get(header) == None
-                dict_fasta_to_lines[header] = list()
-            else:
-                dict_fasta_to_lines[header].append(line.strip('\n'))
-    dict_fasta = dict()
-    for name, lines in dict_fasta_to_lines.items():
-        dict_fasta[name] = ''.join(lines)
-    return dict_fasta
-
-def read_cpg_related_snp_table_infoonly(path_table_format):
-    list_paths = glob(path_table_format)
-    
-    list_tables = list(map(
-        lambda path: pd.read_csv(path, sep = '\t', usecols = ["#CHROM", "POS", "ID", "REF", "ALT", "Bef_Nuc", "Next_Nuc", "Pos_C", "Pos_G"]),
-        list_paths
-    ))
-    table_all = pd.concat(list_tables)
-    return table_all
-
-def add_ncg_col(table, col_check, col_add):
-    re_cg = re.compile("CG")
-    table[col_add] = table[col_check].apply(lambda val: len(re_cg.findall(val)))
-    return table
-
-def get_cg_index_from_fasta(dict_fasta, list_chrnames_check):
-    re_cg = re.compile("CG")
-    
-    dict_chrname_to_cg_index = dict()
-    for chrname in list_chrnames_check:
-        list_match_result = list(re_cg.finditer(dict_fasta[chrname]))
-        list_ind_cgs = list(map(lambda result: result.span()[0], list_match_result))
-        
-        dict_chrname_to_cg_index[chrname] = list_ind_cgs
-    return dict_chrname_to_cg_index
-
-def get_count_per_window_from_index(list_index, window_size):
-    dict_window_ind_to_cnt = dict()
-    for val in list_index:
-        window_index = math.floor(val / window_size)
-        
-        if dict_window_ind_to_cnt.get(window_index) == None:
-            dict_window_ind_to_cnt[window_index] = 0
-        dict_window_ind_to_cnt[window_index] += 1
-    return dict_window_ind_to_cnt
-
-def get_variation_per_window_from_table(table, window_size, col_chr, col_pos, col_variation):
-    dict_chr_to_ncg_diff_per_window = dict()
-    for chrname in table[col_chr].unique():
-        dict_chr_to_ncg_diff_per_window[chrname] = dict()
-        
-        table_chr = table[table[col_chr] == chrname]
-        
-        list_window_index = table_chr[col_pos].apply(lambda val: math.floor(val / window_size))
-        
-        for window_index, n_diff in zip(list_window_index, table_chr[col_variation]):
-            if dict_chr_to_ncg_diff_per_window[chrname].get(window_index) == None:
-                dict_chr_to_ncg_diff_per_window[chrname][window_index] = 0
-            dict_chr_to_ncg_diff_per_window[chrname][window_index] += n_diff
-    return dict_chr_to_ncg_diff_per_window
-
-def run_chisquare_test(altct1, obsct1, altct2, obsct2):
-    refct1 = obsct1 - altct1
-    refct2 = obsct2 - altct2
-    
-    if refct1 == 0 and refct2 == 0:
-        p = 1
-    else:
-        try:
-            chi, p, dof, expected = chi2_contingency(np.array([[altct1, refct1], [altct2, refct2]]))
-        except Exception as e:
-            p = None
-    return p
-
-def get_color(fdr, diff):
-    if fdr > 0.05:
-        return dict_chisq_color["nonsig"]
-    elif diff > 0:
-        return dict_chisq_color["higher"]
-    else:
-        return dict_chisq_color["lower"]
-#%%
-table_gcount = pd.read_csv(path_var_gcount, delim_whitespace = True)
-table_afreq = pd.read_csv(path_var_afreq, delim_whitespace = True)
-table_afreq["ALT_FREQS"] = table_afreq["ALT_CTS"] / table_afreq["OBS_CT"]
-list_varnames_appeared = pd.read_csv(path_varnames_appeared, names = ["varname"])["varname"].to_list()
-list_varnames_disappeared = pd.read_csv(path_varnames_disappeared, names = ["varname"])["varname"].to_list()
-
-dict_hg38 = read_fasta_as_dict(path_hg38)
-table_appeared = read_cpg_related_snp_table_infoonly(path_cpgs_appeared_format)
-table_disappeared = read_cpg_related_snp_table_infoonly(path_cpgs_disappeared_format)
-
-table_snps_check_fdrcalc = pd.read_csv(path_1kgp_comparison_result, sep = '\t')
-#%%
-table_afreq_vartype_annot = add_vartype_annotation(table_afreq)
-
-set_varnames_appeared = set(list_varnames_appeared)
-set_varnames_disappeared = set(list_varnames_disappeared)
-
-table_afreq_vartype_annot["CpG_Elimination"] = table_afreq_vartype_annot["ID"].apply(lambda val: val in set_varnames_disappeared)
-table_afreq_vartype_annot["CpG_Creation"] = table_afreq_vartype_annot["ID"].apply(lambda val: val in set_varnames_appeared)
-
-table_afreq_vartype_annot["CpG_Related_Status"] = list(map(lambda excl, incl: get_cpg_rel_status(excl, incl), table_afreq_vartype_annot["CpG_Elimination"], table_afreq_vartype_annot["CpG_Creation"]))
-
-
-table_gcount["NONREF_CT"] = table_gcount["HET_REF_ALT_CTS"] + table_gcount["TWO_ALT_GENO_CTS"]
-table_gcount["NONREF_RATIO"] = table_gcount["NONREF_CT"] / (table_gcount["NONREF_CT"] + table_gcount["HOM_REF_CT"])
-
-set_all_varnames_related_to_cg = set_varnames_appeared|set_varnames_disappeared
-table_gcount["CpG_Relation"] = table_gcount["ID"].apply(lambda val: val in set_all_varnames_related_to_cg)
-table_gcount_cgv = table_gcount[table_gcount["CpG_Relation"]]
-
-#%%
-table_appeared["REF_Context"] = table_appeared["Bef_Nuc"] + table_appeared["REF"] + table_appeared["Next_Nuc"]
-table_appeared["ALT_Context"] = table_appeared["Bef_Nuc"] + table_appeared["ALT"] + table_appeared["Next_Nuc"]
-
-table_disappeared["REF_Context"] = table_disappeared["Bef_Nuc"] + table_disappeared["REF"] + table_disappeared["Next_Nuc"]
-table_disappeared["ALT_Context"] = table_disappeared["Bef_Nuc"] + table_disappeared["ALT"] + table_disappeared["Next_Nuc"]
-
-table_appeared = add_ncg_col(table_appeared, "REF_Context", "REF_N_CG_Context")
-table_appeared = add_ncg_col(table_appeared, "ALT_Context", "ALT_N_CG_Context")
-
-table_disappeared = add_ncg_col(table_disappeared, "REF_Context", "REF_N_CG_Context")
-table_disappeared = add_ncg_col(table_disappeared, "ALT_Context", "ALT_N_CG_Context")
-
-table_appeared["N_Created"] = table_appeared["ALT_N_CG_Context"] - table_appeared["REF_N_CG_Context"]
-table_disappeared["N_Created"] = table_disappeared["ALT_N_CG_Context"] - table_disappeared["REF_N_CG_Context"]
-
-table_appeared["ID"] = table_appeared["#CHROM"] + ':' + table_appeared["POS"].astype(str)
-table_disappeared["ID"] = table_disappeared["#CHROM"] + ':' + table_disappeared["POS"].astype(str)
-
-table_cpg_rel_snp_total = pd.concat([table_appeared, table_disappeared]).drop_duplicates(subset = ["ID"]).sort_values(by = ["#CHROM", "POS"]).reset_index(drop = True)
-
-list_chrnames_check = list(map(lambda val: f"chr{val}", range(1, 23)))
-dict_hg38_chrname_to_cg_index = get_cg_index_from_fasta(dict_hg38, list_chrnames_check)
-
-dict_hg38_len = dict()
-for chrname in list_chrnames_check:
-    dict_hg38_len[chrname] = len(dict_hg38[chrname])
-
-dict_hg38_chrname_to_ncg_per_window = dict()
-for chrname in list_chrnames_check:
-    dict_hg38_chrname_to_ncg_per_window[chrname] = get_count_per_window_from_index(dict_hg38_chrname_to_cg_index[chrname], window_size)
-
-dict_chrname_to_ncg_diff_per_window = get_variation_per_window_from_table(table_cpg_rel_snp_total, window_size, "#CHROM", "POS", "N_Created")
-
-dict_chrname_to_ratio_diff_per_window = dict()
-for chrname in list_chrnames_check:
-    dict_chrname_to_ratio_diff_per_window[chrname] = dict()
-    
-    max_window = math.floor(dict_hg38_len[chrname] / window_size)
-    
-    for ind_window in range(max_window+1):
-        n_cg_hg38 = dict_hg38_chrname_to_ncg_per_window[chrname].get(ind_window, 0)
-        n_cg_diff = dict_chrname_to_ncg_diff_per_window[chrname].get(ind_window, 0)
-        
-        if n_cg_hg38 == 0:
-            if n_cg_diff == 0:
-                dict_chrname_to_ratio_diff_per_window[chrname][ind_window] = np.nan
-            else:
-                dict_chrname_to_ratio_diff_per_window[chrname][ind_window] = np.inf
-                print(f"{chrname} {ind_window} : inf")
-        else:
-            dict_chrname_to_ratio_diff_per_window[chrname][ind_window] = n_cg_diff / n_cg_hg38
-
-#%%
-table_snps_check_fdrcalc["AF_Diff"] = table_snps_check_fdrcalc["AF_Korea"] - table_snps_check_fdrcalc["AF_1KGP"]
-
-table_snps_check_fdrcalc_region_increased = table_snps_check_fdrcalc[table_snps_check_fdrcalc["Ratio_Diff"] > 0]
-table_snps_check_fdrcalc_region_decreased = table_snps_check_fdrcalc[table_snps_check_fdrcalc["Ratio_Diff"] < 0]
-
-table_snps_check_fdrcalc_region_increased_positive = table_snps_check_fdrcalc_region_increased[table_snps_check_fdrcalc_region_increased["N_Created"] > 0]
-table_snps_check_fdrcalc_region_decreased_negative = table_snps_check_fdrcalc_region_decreased[table_snps_check_fdrcalc_region_decreased["N_Created"] < 0]
-
-table_draw_ax1 = table_snps_check_fdrcalc_region_increased_positive.copy()
-table_draw_ax2 = table_snps_check_fdrcalc_region_decreased_negative.copy()
-
-table_draw_ax1["Log10FDR"] = table_draw_ax1["ChiSquared_FDR"].apply(lambda val: -np.log10(val + 1e-320))
-table_draw_ax2["Log10FDR"] = table_draw_ax2["ChiSquared_FDR"].apply(lambda val: -np.log10(val + 1e-320))
-
-table_draw_ax1["color"] = table_draw_ax1.apply(lambda row: get_color(row["ChiSquared_FDR"], row["AF_Diff"]), axis = 1)
-table_draw_ax2["color"] = table_draw_ax2.apply(lambda row: get_color(row["ChiSquared_FDR"], row["AF_Diff"]), axis = 1)
-#%%
-list_vartype = ["SNV", "INS", "DEL"]
-
-dict_vartype_to_cpgrel_count = dict()
-for vartype in list_vartype:
-    dict_vartype_to_cpgrel_count[vartype] = Counter(table_afreq_vartype_annot[table_afreq_vartype_annot["VarType"] == vartype]["CpG_Related_Status"])
-
-list_total_ratio = list()
-list_total_diff = list()
-for chrname in dict_chrname_to_ratio_diff_per_window.keys():
-    list_index = list(dict_chrname_to_ratio_diff_per_window[chrname].keys())
-    list_ratios = list(map(dict_chrname_to_ratio_diff_per_window[chrname].__getitem__, list_index))
-    list_cnts = list(map(lambda ind: dict_chrname_to_ncg_diff_per_window[chrname].get(ind, np.nan), list_index))
-    
-    list_zip_ratio_cnt = list(zip(list_ratios, list_cnts))
-    list_zip_ratio_cnt_nonna = list(filter(lambda val: pd.notna(val[0]), list_zip_ratio_cnt))
-    
-    list_total_ratio.extend(list(map(lambda val: val[0], list_zip_ratio_cnt_nonna)))
-    list_total_diff.extend(list(map(lambda val: val[1], list_zip_ratio_cnt_nonna)))
-
-#%%
-plt.rcParams['font.family'] = 'sans-serif'
-plt.rcParams["font.size"] = 17
-fontsize_label = 25
-
-fig = plt.figure(figsize=(10, 15))
-row = 150
-col = 101
-gsfig = GridSpec(
+fig = plt.figure(figsize=(16, 24))
+row = sum(hspaces) + height_pca + height_adm*2 + height_prop*3
+col = 36
+gsfig = gridspec.GridSpec(
     row, col, 
     left=0, right=1, bottom=0,
     top=1, wspace=1, hspace=1)
 
-layer1_width = 27
-layer1_wspace = 10
 
-gs_cgv_ac = gsfig[0:40, 0:27]
-ax_cgv_ac = fig.add_subplot(gs_cgv_ac)
+gs_axA = gsfig[0:height_pca, 0:15]
+axA = fig.add_subplot(gs_axA)
 
-gs_cgv_ac_ratio = gsfig[0:40, 35:35+27]
-ax_cgv_ac_ratio = fig.add_subplot(gs_cgv_ac_ratio)
+gs_axB = gsfig[0:height_pca, 21:36]
+axB = fig.add_subplot(gs_axB)
 
-gs_popular_cgv = gsfig[50:85, 0:45]
-ax_popular_cgv = fig.add_subplot(gs_popular_cgv)
+gs_axC = gsfig[height_pca+sum(hspaces[:1]):height_pca+sum(hspaces[:1])+height_adm, 0:36]
+gs_axC1 = gsfig[height_pca+height_adm+sum(hspaces[:2]):height_pca+height_adm*2+sum(hspaces[:2]), 0:36]
+axC = fig.add_subplot(gs_axC)
+axC1 = fig.add_subplot(gs_axC1)
 
-gs_diff2ratio = gsfig[50:85, col-45:col]
-ax_diff2ratio = fig.add_subplot(gs_diff2ratio)
+gs_axD = gsfig[height_pca+height_adm*2+sum(hspaces[:3]):height_pca+height_adm*2+height_prop+sum(hspaces[:3]), 0:36]
+axD = fig.add_subplot(gs_axD)
 
-gs_cgv_c = gsfig[95:150, 0:45] 
-ax_cgv_c = fig.add_subplot(gs_cgv_c)
+gs_axE = gsfig[height_pca+height_adm*2+height_prop+sum(hspaces[:4]):height_pca+height_adm*2+height_prop*2+sum(hspaces[:4]), 0:36]
+axE = fig.add_subplot(gs_axE)
 
-gs_cgv_e = gsfig[95:150, col-45:col]
-ax_cgv_e = fig.add_subplot(gs_cgv_e)
+gs_axF = gsfig[height_pca+height_adm*2+height_prop*2+sum(hspaces[:5]):height_pca+height_adm*2+height_prop*3+sum(hspaces[:5]), 0:36]
+axF = fig.add_subplot(gs_axF)
 
-label_x = -0.1
-label_y = 0.02
-
-
-############# CGV on Korea10K
-bottom = np.array([0] * len(list_vartype))
-for cpgreltype in list_cpgrel_type:
-    list_cnt = np.array(list(map(lambda vartype: dict_vartype_to_cpgrel_count[vartype][cpgreltype], list_vartype)))
+for ax in [axC1]:
+    pos = ax.get_position()
+    ax.set_position([pos.x0, pos.y0 + 0.007, pos.width, pos.height])
     
-    ax_cgv_ac.bar(
-        range(len(list_vartype)),
-        list_cnt,
-        color = dict_cpgrel_to_color[cpgreltype],
-        bottom = bottom,
-        # label = cpgreltype,
-        width = 0.8
-    )
-    print(list_cnt)
-    bottom += list_cnt
-ax_cgv_ac.set_xticks(range(len(list_vartype)), list_vartype)
-ax_cgv_ac.set_ylabel("# Variants")
-ax_cgv_ac.set_xlim(-0.7, 2.7)
-ax_cgv_ac.text(
-    label_x, 1+label_y, 'A', fontsize = fontsize_label, fontweight = "bold", transform = ax_cgv_ac.transAxes, ha = "right", va = "bottom"
+def widen_axis(ax, factor=1.15):
+    pos = ax.get_position()
+    new_width = pos.width * factor
+    ax.set_position([pos.x0, pos.y0, new_width, pos.height])
+
+def heighten_axis(ax, factor=1.15, anchor="bottom"):
+    pos = ax.get_position()
+    old_height = pos.height
+    new_height = old_height * factor
+
+    if anchor == "bottom":
+        new_y0 = pos.y0
+    elif anchor == "top":
+        new_y0 = pos.y0 - (new_height - old_height)
+    elif anchor == "center":
+        new_y0 = pos.y0 - (new_height - old_height) / 2
+    else:
+        raise ValueError("anchor must be 'bottom', 'center', or 'top'")
+
+    ax.set_position([pos.x0, new_y0, pos.width, new_height])
+
+# widen_axis(axA, factor=1.05)
+# heighten_axis(axC, factor=2.2, anchor="top")
+# heighten_axis(axC1, factor=2.2, anchor="bottom")
+
+workdir = "/BiO/Access/kyungwhan1998/genome/admixture/Resources/Data/ku10k_1KGP"
+path_eigenval = os.path.join(workdir, "Merged_ku10k_1kgp.extract_overlap_snps.flipped_nonoverlap_snps.excluded_missnps.excluded_outlier_plus_nonKorean_samples.postmerge_QC_filtered.preprocssed.prune_200kb_0.5.pca.eigenval")
+path_eigenvec = os.path.join(workdir, "Merged_ku10k_1kgp.extract_overlap_snps.flipped_nonoverlap_snps.excluded_missnps.excluded_outlier_plus_nonKorean_samples.postmerge_QC_filtered.preprocssed.prune_200kb_0.5.pca.eigenvec")
+path_sample_info_1KGP = "/BiO/Research/Korea10KGenome/Resources/External_Genome_Data/1KGP/1KGP_30x_GRCh38/20130606_g1k_3202_samples_ped_population.txt"
+
+eigenval = pd.read_csv(path_eigenval, sep="\t", header=None)
+eigenval = eigenval.rename(columns={0:"VarianceExplained"})
+eigenval["PropVarianceExplained"] = round(eigenval["VarianceExplained"]/sum(eigenval["VarianceExplained"])*100, 1)
+
+eigenvec = pd.read_csv(path_eigenvec, sep="\t")
+eigenvec = eigenvec.rename(columns={"#FID":"SampleID"})
+
+list_samples_10K = list(filter(lambda x: "10K" in x, eigenvec["SampleID"].to_list()))
+list_pop_10K = ["KOR"]*len(list_samples_10K)
+list_superpop_10K = ["EAS"]*len(list_samples_10K)
+dict_sample_info_10K = {"SampleID": list_samples_10K, "Population": list_pop_10K, "Superpopulation": list_superpop_10K}
+df_sample_info_10K = pd.DataFrame(dict_sample_info_10K)
+df_sample_info_1KGP = pd.read_csv(path_sample_info_1KGP, delim_whitespace=True)[["SampleID", "Population", "Superpopulation"]]
+df_sample_info = pd.concat([df_sample_info_10K, df_sample_info_1KGP], axis=0)
+
+eigenvec_sample_info_merged = pd.merge(eigenvec, df_sample_info, how="inner", on="SampleID")
+
+eigenvec_sample_info_merged_kor_only = eigenvec_sample_info_merged[eigenvec_sample_info_merged["Population"] == "KOR"]
+sns.scatterplot(
+    data=eigenvec_sample_info_merged,
+    x="PC1",
+    y="PC2",
+    color="grey", 
+    alpha=0.5,
+    s=20,
+    edgecolor="black",
+    legend=False,
+    ax=axA
 )
 
-bottom = np.array([0.0] * len(list_vartype))
-for cpgreltype in list_cpgrel_type:
-    list_cnt = np.array(list(map(lambda vartype: dict_vartype_to_cpgrel_count[vartype][cpgreltype], list_vartype)))
-    list_ratio = list_cnt / np.array(list(map(lambda vartype: sum(dict_vartype_to_cpgrel_count[vartype].values()), list_vartype)))
+# Compute cluster centroids for superpopulation
+centroids = eigenvec_sample_info_merged.groupby("Superpopulation")[["PC1", "PC2"]].median()
+
+# Annotate each superpopulation near its cluster with offsets
+for superpop, row in centroids.iterrows():
+    if superpop == "AMR":
+        axA.text(
+            row["PC1"]-0.01,
+            row["PC2"]+0.001,
+            superpop,
+            fontsize=plt.rcParams["font.size"]+2,
+            fontweight="bold",
+            color="k",
+            ha="center",
+            va="center"
+        )
+    elif superpop == "AFR":
+        axA.text(
+            row["PC1"]-0.003,
+            row["PC2"]+0.005,
+            superpop,
+            fontsize=plt.rcParams["font.size"]+2,
+            fontweight="bold",
+            color="k",
+            ha="center",
+            va="center"
+        )
     
-    ax_cgv_ac_ratio.bar(
-        range(len(list_vartype)),
-        list_ratio,
-        color = dict_cpgrel_to_color[cpgreltype],
-        bottom = bottom,
-        label = cpgreltype,
-        width = 0.8
+    elif superpop == "EAS":
+        axA.text(
+            row["PC1"]+0.004,
+            row["PC2"]+0.004,
+            superpop,
+            fontsize=plt.rcParams["font.size"]+2,
+            fontweight="bold",
+            color="k",
+            ha="center",
+            va="center"
+        )
+    else:
+        axA.text(
+            row["PC1"]-0.003,
+            row["PC2"]+0.002,
+            superpop,
+            fontsize=plt.rcParams["font.size"]+2,
+            fontweight="bold",
+            color="k",
+            ha="center",
+            va="center"
+        )
+
+def plot_confidence_ellipse(x, y, ax, n_std=1.0, facecolor='none', **kwargs):
+    cov = np.cov(x, y)
+    mean_x = np.mean(x)
+    mean_y = np.mean(y)
+
+    vals, vecs = np.linalg.eigh(cov)
+    order = vals.argsort()[::-1]
+    vals = vals[order]
+    vecs = vecs[:, order]
+
+    theta = np.degrees(np.arctan2(*vecs[:,0][::-1]))
+    width, height = 2 * n_std * np.sqrt(vals)
+    
+    ellipse = patches.Ellipse(
+        (mean_x, mean_y),
+        width,
+        height,
+        angle=theta,
+        facecolor=facecolor,
+        **kwargs
     )
-    bottom += list_ratio
-ax_cgv_ac_ratio.set_xticks(range(len(list_vartype)), list_vartype)
-ax_cgv_ac_ratio.set_ylabel("Ratio of Variants")
-ax_cgv_ac_ratio.set_xlim(-0.7, 2.7)
-ax_cgv_ac_ratio.text(
-    label_x * ((gs_cgv_ac.colspan.stop-gs_cgv_ac.colspan.start) / (gs_cgv_ac_ratio.colspan.stop-gs_cgv_ac_ratio.colspan.start)), 1+label_y*((gs_cgv_ac.rowspan.stop-gs_cgv_ac.rowspan.start) / (gs_cgv_ac_ratio.rowspan.stop-gs_cgv_ac_ratio.rowspan.start)), 'B', fontsize = fontsize_label, fontweight = "bold", transform = ax_cgv_ac_ratio.transAxes, ha = "right", va = "bottom"
+    ax.add_patch(ellipse)
+
+color_dict = {
+    "EAS": "red",
+    "EUR": "blue",
+    "AFR": "green",
+    "AMR": "purple",
+    "SAS": "k"
+}
+
+superpops = eigenvec_sample_info_merged["Superpopulation"].unique()
+for sp in superpops:
+    if sp == "SAS":
+        sp_data = eigenvec_sample_info_merged[eigenvec_sample_info_merged["Superpopulation"]==sp]
+        plot_confidence_ellipse(
+            sp_data["PC1"], sp_data["PC2"],
+            ax=axA,
+            n_std=2.0,
+            edgecolor=color_dict.get(sp, "grey"),
+            linestyle="-",
+            alpha=1,
+            linewidth=5
+        )
+
+sns.scatterplot(
+    data=eigenvec_sample_info_merged_kor_only,
+    x="PC1",
+    y="PC2",
+    color="firebrick",
+    alpha=0.8,
+    s=20,
+    edgecolor="black",
+    legend=False,
+    ax=axA
 )
 
-ax_cgv_ac_ratio.legend(loc = "center left", bbox_to_anchor = (1.01, 0.5), ncol = 1)
+centroid_KOR = eigenvec_sample_info_merged_kor_only.groupby("Population")[["PC1", "PC2"]].median()
 
+for pop, row in centroid_KOR.iterrows():
+    axA.text(
+        row["PC1"]+0.001,
+        row["PC2"]-0.004,
+        pop,
+        fontsize=plt.rcParams["font.size"]+8,
+        fontweight="bold",
+        color="firebrick",
+        ha="center",
+        va="center"
+    )
 
-################ Popular variant from CGV
-ax_popular_cgv.hist(table_gcount[table_gcount["CpG_Relation"]]["NONREF_RATIO"], bins = np.linspace(0, 1, 101), color = "gray")
-ax_popular_cgv.set_yscale("log")
-ax_popular_cgv.set_xlabel("Ratio of Non-REF Genotype")
-ax_popular_cgv.set_ylabel("# Variant")
-ax_popular_cgv.axvline(0.8, linewidth = 2, color = "firebrick", linestyle = "--")
-ax_popular_cgv.text(
-    label_x * ((gs_cgv_ac.colspan.stop-gs_cgv_ac.colspan.start) / (gs_popular_cgv.colspan.stop-gs_popular_cgv.colspan.start)), 1+label_y*((gs_cgv_ac.rowspan.stop-gs_cgv_ac.rowspan.start) / (gs_popular_cgv.rowspan.stop-gs_popular_cgv.rowspan.start)), 'C', fontsize = fontsize_label, fontweight = "bold", transform = ax_popular_cgv.transAxes, ha = "right", va = "bottom"
+axA.set_xlabel(f"PC1", fontsize=plt.rcParams["font.size"]+7, weight="bold")
+axA.set_ylabel(f"PC2", fontsize=plt.rcParams["font.size"]+7, weight="bold")
+
+axA.text(
+    -0.22, 1.02,
+    "A",
+    transform=axA.transAxes,
+    fontsize=plt.rcParams["font.size"]+12,
+    fontweight="bold",
+    va="top",
+    ha="left"
 )
 
-################ CG diff to Ratio
-ax_diff2ratio.hist(list_total_ratio, bins = np.linspace(-0.3, 0.3, 49), color = "gray")
-ax_diff2ratio.set_xlabel("Ratio of # CG Difference")
-ax_diff2ratio.set_ylabel("# Windows")
-# ax_diff2ratio.set_yscale("log")
-# ax_diff2ratio.scatter(list_total_diff, list_total_ratio, s = 3, color = "gray")
-# ax_diff2ratio.set_xlabel("# CG Difference")
-# ax_diff2ratio.set_ylabel("Ratio of # CG Difference")
-ax_diff2ratio.text(
-    label_x * ((gs_cgv_ac.colspan.stop-gs_cgv_ac.colspan.start) / (gs_diff2ratio.colspan.stop-gs_diff2ratio.colspan.start)), 1+label_y*((gs_cgv_ac.rowspan.stop-gs_cgv_ac.rowspan.start) / (gs_diff2ratio.rowspan.stop-gs_diff2ratio.rowspan.start)), 'D', fontsize = fontsize_label, fontweight = "bold", transform = ax_diff2ratio.transAxes, ha = "right", va = "bottom"
+workdir = "/BiO/Access/kyungwhan1998/genome/admixture/Resources/Data/ku10k_1KGP"
+path_eigenval = os.path.join(workdir, "Merged_ku10k_1kgp.extract_overlap_snps.flipped_nonoverlap_snps.excluded_missnps.9000Koreans+1KGPEAS_samples.postmerge_QC_filtered.Merged_chr.biallelic.Autosome.varname.geno_0.01.mind_0.1.hwe_1e6.het_3std.kinship_3rd.prune.200kb_0.5.pca.eigenval")
+path_eigenvec = os.path.join(workdir, "Merged_ku10k_1kgp.extract_overlap_snps.flipped_nonoverlap_snps.excluded_missnps.9000Koreans+1KGPEAS_samples.postmerge_QC_filtered.Merged_chr.biallelic.Autosome.varname.geno_0.01.mind_0.1.hwe_1e6.het_3std.kinship_3rd.prune.200kb_0.5.pca.eigenvec")
+path_sample_info_1KGP = "/BiO/Research/Korea10KGenome/Resources/External_Genome_Data/1KGP/1KGP_30x_GRCh38/20130606_g1k_3202_samples_ped_population.txt"
+
+eigenval = pd.read_csv(path_eigenval, sep="\t", header=None)
+eigenval = eigenval.rename(columns={0:"VarianceExplained"})
+eigenval["PropVarianceExplained"] = round(eigenval["VarianceExplained"]/sum(eigenval["VarianceExplained"])*100, 1)
+
+eigenvec = pd.read_csv(path_eigenvec, sep="\t")
+eigenvec = eigenvec.rename(columns={"#FID":"SampleID"})
+
+list_samples_10K = list(filter(lambda x: "10K" in x, eigenvec["SampleID"].to_list()))
+list_pop_10K = ["KOR"]*len(list_samples_10K)
+list_superpop_10K = ["EAS"]*len(list_samples_10K)
+dict_sample_info_10K = {"SampleID": list_samples_10K, "Population": list_pop_10K, "Superpopulation": list_superpop_10K}
+df_sample_info_10K = pd.DataFrame(dict_sample_info_10K)
+df_sample_info_1KGP = pd.read_csv(path_sample_info_1KGP, delim_whitespace=True)[["SampleID", "Population", "Superpopulation"]]
+df_sample_info = pd.concat([df_sample_info_10K, df_sample_info_1KGP], axis=0)
+
+eigenvec_sample_info_merged = pd.merge(eigenvec, df_sample_info, how="inner", on="SampleID")
+eigenvec_sample_info_merged_kor_only = eigenvec_sample_info_merged[eigenvec_sample_info_merged["Population"] == "KOR"]
+
+sns.scatterplot(
+    data=eigenvec_sample_info_merged,
+    x="PC1",
+    y="PC2",
+    color="grey", 
+    alpha=0.5,
+    s=20,
+    edgecolor="black",
+    legend=False,
+    ax=axB
 )
 
-################ 1KGP Diff
-ax_cgv_c.scatter(
-    table_draw_ax1["AF_Diff"],
-    table_draw_ax1["Log10FDR"],
-    s = 3,
-    color = table_draw_ax1["color"],
-    zorder = 1
-)
-ax_cgv_c.axhline(-np.log10(0.05), linewidth = 1, linestyle = "--", color = "gray", zorder = 3)
-ax_cgv_c.set_xlabel("AF Difference")
-ax_cgv_c.set_ylabel("-Log10(FDR)")
-ax_cgv_c.set_xlim(-1, 1)
-ax_cgv_c.text(
-    label_x * ((gs_cgv_ac.colspan.stop-gs_cgv_ac.colspan.start) / (gs_cgv_c.colspan.stop-gs_cgv_c.colspan.start)), 1+label_y*((gs_cgv_ac.rowspan.stop-gs_cgv_ac.rowspan.start) / (gs_cgv_c.rowspan.stop-gs_cgv_c.rowspan.start)), 'E', fontsize = fontsize_label, fontweight = "bold", transform = ax_cgv_c.transAxes, ha = "right", va = "bottom"
+label_offsets = {
+    "JPT": (0.01, 0),
+    "CHB": (0, -0.01),
+    "CHS": (0, -0.01),
+    "CDX": (0, -0.01),
+    "KHV": (0, -0.01)
+}
+
+centroids = eigenvec_sample_info_merged.groupby("Population")[["PC1", "PC2"]].median()
+
+for ind, row in centroids.iterrows():
+    pop = ind
+    if pop != "KOR":
+        dx, dy = label_offsets.get(pop, (0, 0))
+        axB.text(
+            row["PC1"] + dx,
+            row["PC2"] + dy,
+            pop,
+            fontsize=plt.rcParams["font.size"]+2,
+            fontweight="bold",
+            color="black",
+            ha="center",
+            va="center",
+            zorder=5
+        )
+
+sns.scatterplot(
+    data=eigenvec_sample_info_merged_kor_only,
+    x="PC1",
+    y="PC2",
+    color="firebrick", 
+    alpha=0.5,
+    s=20,
+    edgecolor="black",
+    legend=False,
+    ax=axB
 )
 
-ax_cgv_e.scatter(
-    table_draw_ax2["AF_Diff"],
-    table_draw_ax2["Log10FDR"],
-    s = 3,
-    color = table_draw_ax2["color"],
-    zorder = 1
-)
-ax_cgv_e.axhline(-np.log10(0.05), linewidth = 1, linestyle = "--", color = "gray", zorder = 3)
-ax_cgv_e.set_xlabel("AF Difference")
-ax_cgv_e.set_ylabel("-Log10(FDR)")
-ax_cgv_e.set_xlim(-1, 1)
-ax_cgv_e.text(
-    label_x * ((gs_cgv_ac.colspan.stop-gs_cgv_ac.colspan.start) / (gs_cgv_e.colspan.stop-gs_cgv_e.colspan.start)), 1+label_y*((gs_cgv_ac.rowspan.stop-gs_cgv_ac.rowspan.start) / (gs_cgv_e.rowspan.stop-gs_cgv_e.rowspan.start)), 'F', fontsize = fontsize_label, fontweight = "bold", transform = ax_cgv_e.transAxes, ha = "right", va = "bottom"
+centroid_KOR = eigenvec_sample_info_merged_kor_only.groupby("Population")[["PC1", "PC2"]].median()
+
+for pop, row in centroid_KOR.iterrows():
+    axB.text(
+        row["PC1"]+0.01,
+        row["PC2"]-0.02,
+        pop,
+        fontsize=plt.rcParams["font.size"]+8,
+        fontweight="bold",
+        color="firebrick",
+        ha="center",
+        va="center"
+    )
+
+samples_highlight = ["KU10K-00922", "KU10K-02029"]
+labels_highlight = ["KOREF1", "KOREF2"]
+highlight_rows = eigenvec_sample_info_merged.loc[
+    eigenvec_sample_info_merged["SampleID"].isin(samples_highlight)
+]
+
+for highlight_row_pc1, highlight_row_pc2, highlight_label in zip(highlight_rows["PC1"], highlight_rows["PC2"], labels_highlight):
+    axB.scatter(
+        highlight_row_pc1,
+        highlight_row_pc2,
+        color="red",
+        edgecolor="black",
+        s=80,
+        zorder=10,
+        label=str(highlight_label)
+    )
+
+    axB.text(
+        highlight_row_pc1+0.007,
+        highlight_row_pc2-0.003,
+        str(highlight_label),
+        color="k",
+        fontsize=plt.rcParams["font.size"],
+        fontweight="bold",
+        ha="left",
+        va="bottom",
+        zorder=11
+    )
+
+    if highlight_label in ["KOREF1", "KOREF2"]:
+        axB.plot(
+            [highlight_row_pc1, highlight_row_pc1 + 0.006],
+            [highlight_row_pc2, highlight_row_pc2],
+            color="black",
+            lw=2,
+            zorder=9
+        )
+
+axB.set_xlabel(f"PC1", fontsize=plt.rcParams["font.size"]+7, weight="bold")
+axB.set_ylabel(f"PC2", fontsize=plt.rcParams["font.size"]+7, weight="bold")
+
+axB.text(
+    -0.22, 1.02,
+    "B",
+    transform=axB.transAxes,
+    fontsize=plt.rcParams["font.size"]+12,
+    fontweight="bold",
+    va="top",
+    ha="left"
 )
 
-plt.show()
+K = 7
+workdir = "/BiO/Access/kyungwhan1998/genome/admixture/Results"
+Qpop_sorted_file = os.path.join(workdir, f"admixture_plot_input_K{K}.txt")
+pop_order_file = os.path.join(workdir, "pop_order.txt")
+
+# -------------------------------
+# READ DATA
+# -------------------------------
+Qpop_sorted = (
+    pd.read_csv(Qpop_sorted_file, sep="\t", index_col=0)
+    .reset_index()
+    .rename(columns={"index": "SampleID"})
+)
+pop_order = [line.strip() for line in open(pop_order_file) if line.strip() and not line.startswith("#")]
+Qpop_sorted["Population"] = pd.Categorical(Qpop_sorted["Population"], categories=pop_order, ordered=True)
+
+# -------------------------------
+# SORT BY MAX CLUSTER
+# -------------------------------
+cluster_cols = [f"Cluster{i+1}" for i in range(K)]
+Qpop_sorted["MaxCluster"] = Qpop_sorted[cluster_cols].idxmax(axis=1)
+Qpop_sorted["MaxValue"] = Qpop_sorted[cluster_cols].max(axis=1)
+
+sorted_frames = []
+for pop in pop_order:
+    sub = Qpop_sorted[Qpop_sorted["Population"] == pop].copy()
+    if sub.empty:
+        continue
+    sub = sub.sort_values(by=["MaxCluster", "MaxValue"], ascending=[True, False])[::-1]
+    sorted_frames.append(sub)
+Qpop_sorted = pd.concat(sorted_frames).reset_index(drop=True)
+
+# -------------------------------
+# COLORS
+# -------------------------------
+cluster_colors = sns.color_palette([
+    "#984EA3", "#0047A0", "#FF5E00", "#EBB112", "#FFFF33", "#F781BF", "#01A4BA"
+])
+
+x = np.arange(len(Qpop_sorted))
+bottom = np.zeros(len(Qpop_sorted))
+
+for i, cluster in enumerate(cluster_cols):
+    axC.bar(
+        x,
+        Qpop_sorted[cluster],
+        bottom=bottom,
+        width=1.0,
+        color=cluster_colors[i],
+        edgecolor="none",
+        label=cluster,
+    )
+    bottom += Qpop_sorted[cluster].values
+
+# -------------------------------
+# POPULATION BOUNDARIES
+# -------------------------------
+pop_boundaries, pop_labels, pop_labels_names = [], [], []
+start = 0
+for pop in pop_order:
+    subset = Qpop_sorted[Qpop_sorted["Population"] == pop]
+    if subset.empty:
+        continue
+    end = start + len(subset)
+    pop_boundaries.append(end)
+    pop_labels.append((start + end) / 2)
+    pop_labels_names.append(pop)
+    start = end
+
+# AXIS STYLE
+for axis in ['top', 'bottom', 'left', 'right']:
+    axC.spines[axis].set_linewidth(2)
+for b in pop_boundaries[:-1]:
+    axC.axvline(b, color="black", lw=2)
+axC.set_xticks(pop_labels)
+axC.set_xticklabels("", fontsize=0)
+axC.set_xlabel("")
+axC.set_yticks([])
+axC.set_xmargin(0)
+axC.set_ymargin(0)
+
+# K LABEL
+axC.text(-0.01, 0.5, f"K={K}", transform=axC.transAxes,
+         fontsize=plt.rcParams["font.size"] + 7, fontweight="bold",
+         rotation=0, va="center", ha="right")
+
+# -------------------------------
+# SUPERPOPULATION DICTIONARY
+# -------------------------------
+superpop_dict = {
+    "AFR": ["YRI", "LWK", "GWD", "MSL", "ESN", "ACB", "ASW"],
+    "EUR": ["CEU", "GBR", "FIN", "IBS", "TSI"],
+    "EAS": ["CHB", "CHS", "JPT", "KHV", "CDX", "KOR"],
+    "SAS": ["PJL", "BEB", "GIH", "ITU", "STU"],
+    "AMR": ["CLM", "MXL", "PUR", "PEL"]
+}
+
+# Reverse mapping: population -> superpopulation
+pop_to_superpop = {pop: sp for sp, pop_list in superpop_dict.items() for pop in pop_list}
+
+# Convert ordered population list → superpopulation list safely
+superpops = [pop_to_superpop.get(p, "OTHER") for p in pop_labels_names]
+
+# -------------------------------
+# SUPERPOPULATION RANGES
+# -------------------------------
+superpop_ranges = []
+sp_current = superpops[0]
+start = 0
+for i in range(1, len(superpops)):
+    if superpops[i] != sp_current:
+        superpop_ranges.append((sp_current, start, i))
+        sp_current = superpops[i]
+        start = i
+superpop_ranges.append((sp_current, start, len(superpops)))
+
+# -------------------------------
+# PLOT SUPERPOPULATION LINES & LABELS
+# -------------------------------
+y_line = 1.1
+y_text = 1.15
+
+# compute population start indices
+pop_start_idx = [0] + pop_boundaries[:-1]
+
+for sp, start_idx, end_idx in superpop_ranges:
+    # first sample of the first population in superpop
+    first_sample_idx = pop_start_idx[start_idx]
+    # last sample of the last population in superpop
+    last_sample_idx = pop_boundaries[end_idx - 1] - 1
+
+    # convert to x coordinates
+    x_start = first_sample_idx
+    x_end = last_sample_idx + 1  # +1 to include the last sample
+
+    # draw horizontal line for superpopulation
+    axC.plot([x_start+20, x_end-20], [y_line, y_line],
+             transform=axC.get_xaxis_transform(),
+             color='black', lw=3, clip_on=False)
+
+    # place superpopulation text centered
+    axC.text((x_start + x_end) / 2, y_text, sp,
+             transform=axC.get_xaxis_transform(),
+             ha='center', va='bottom',
+             fontsize=plt.rcParams['font.size'] + 4,
+             fontweight='bold')
+    
+K = 9
+Qpop_sorted_file = os.path.join(workdir, f"admixture_plot_input_K{K}.txt")
+
+Qpop_sorted = (
+    pd.read_csv(Qpop_sorted_file, sep="\t", index_col=0)
+    .reset_index()
+    .rename(columns={"index": "SampleID"})
+)
+
+Qpop_sorted["Population"] = pd.Categorical(Qpop_sorted["Population"], categories=pop_order, ordered=True)
+
+cluster_cols = [f"Cluster{i+1}" for i in range(K)]
+Qpop_sorted["MaxCluster"] = Qpop_sorted[cluster_cols].idxmax(axis=1)
+Qpop_sorted["MaxValue"] = Qpop_sorted[cluster_cols].max(axis=1)
+
+sorted_frames = []
+for pop in pop_order:
+    sub = Qpop_sorted[Qpop_sorted["Population"] == pop].copy()
+    if sub.empty:
+        continue
+    sub = sub.sort_values(
+        by=["MaxCluster", "MaxValue"], ascending=[True, False]
+    )[::-1]
+    sorted_frames.append(sub)
+Qpop_sorted = pd.concat(sorted_frames).reset_index(drop=True)
+
+cluster_colors = sns.color_palette([
+    "#984EA3", "#0047A0", "#EBB112", "#01A4BA", "#FFFF33",
+    "#4DAF4A", "#CD2E3A", "#F781BF", "#FF5E00"
+])
+
+x = np.arange(len(Qpop_sorted))
+bottom = np.zeros(len(Qpop_sorted))
+
+for i, cluster in enumerate(cluster_cols):
+    axC1.bar(
+        x,
+        Qpop_sorted[cluster],
+        bottom=bottom,
+        width=1.0,
+        color=cluster_colors[i],
+        edgecolor="none",
+        label=cluster,
+    )
+    bottom += Qpop_sorted[cluster].values
+
+pop_boundaries, pop_labels, pop_labels_names = [], [], []
+start = 0
+for pop in pop_order:
+    subset = Qpop_sorted[Qpop_sorted["Population"] == pop]
+    if subset.empty:
+        continue
+    end = start + len(subset)
+    pop_boundaries.append(end)
+    pop_labels.append((start + end) / 2)
+    pop_labels_names.append(pop)
+    start = end
+
+for axis in ['top', 'bottom', 'left', 'right']:
+    axC1.spines[axis].set_linewidth(2)
+
+for b in pop_boundaries[:-1]:
+    axC1.axvline(b, color="black", lw=2)
+
+axC1.set_xticks(pop_labels)
+axC1.set_xticklabels(
+    pop_labels_names,
+    rotation=45, rotation_mode="anchor", ha="right",
+    fontsize=plt.rcParams["font.size"] + 2,
+)
+axC1.set_xlabel("Individuals (grouped by population)", fontsize=plt.rcParams["font.size"] + 5, weight="bold")
+axC1.set_yticks([])
+axC1.set_xmargin(0)
+axC1.set_ymargin(0)
+
+axC1.text(-0.01, 0.5, "K=9", transform=axC1.transAxes,
+          fontsize=plt.rcParams["font.size"] + 7, fontweight="bold",
+          rotation=0, va="center", ha="right")
+
+axC.text(
+    -0.09, 1.05,
+    "C",
+    transform=axC.transAxes,
+    fontsize=plt.rcParams["font.size"] + 10,
+    fontweight="bold",
+    va="top",
+    ha="left"
+)
+# %%
+
+# path_Y_10K = "/BiO/Access/kyungwhan1998/genome/yhaplo/output/Korea10K_Male_Only/haplogroups.chrY.biallelic.hg19.liftover.haploid.fixed.male.filtered.txt"
+path_Y_10K = "/BiO/Access/kyungwhan1998/genome/ychrom/Korea10K/haplogroups.korea10K.jointcall.removeDup.biallelic.chrY.liftover.txt"
+path_Y_1KGP = "/BiO/Access/kyungwhan1998/genome/yhaplo/output/1000Genomes/haplogroups.1000Y.all.txt"
+
+path_plink_fam = "/BiO/Access/kyungwhan1998/genome/admixture/Resources/Data/ku10k_1KGP/Merged_ku10k_1kgp.extract_overlap_snps.flipped_nonoverlap_snps.excluded_missnps.excluded_outlier_plus_nonKorean_samples.postmerge_QC_filtered.preprocssed.prune_200kb_0.5.pruned.fam"
+df_Y_10K = pd.read_csv(path_Y_10K, delim_whitespace=True, header=None)
+df_Y_10K.columns = ["SampleID", "Haplogroup", "Macro_haplogroup", "Simplified_haplogroup"]
+df_Y_10K_excl_Ahaplo = df_Y_10K[~df_Y_10K["Macro_haplogroup"].str.startswith("A")]
+df_Y_1KGP = pd.read_csv(path_Y_1KGP, delim_whitespace=True, header=None)
+df_Y_1KGP.columns = ["SampleID", "Haplogroup", "Macro_haplogroup", "Simplified_haplogroup"]
+df_Y = pd.concat([df_Y_10K_excl_Ahaplo, df_Y_1KGP], axis=0)
+df_Y.columns = ["SampleID", "Haplogroup", "Macro_haplogroup", "Simplified_haplogroup"]
+
+# Simplify haplogroups
+def simplify_haplogroup(h):
+    if str(h).startswith("O"):
+        match = re.match(r"([A-Z]+\d*)", h)
+    else:
+        match = re.match(r"([A-Z]+)", h)
+    return match.group(1) if match else h
+
+df_Y["Major_Haplogroup"] = df_Y["Simplified_haplogroup"].apply(simplify_haplogroup)
+
+df_Y_sample_info = pd.merge(df_Y, df_sample_info, on="SampleID", how="inner")
+
+with open(path_plink_fam, "r") as fr:
+    list_samples_filter_in = [line.split()[0] for line in fr.readlines()]
+
+df_Y_sample_info_filtered = df_Y_sample_info[
+    df_Y_sample_info["SampleID"].isin(list_samples_filter_in)
+]
+
+pop_freq = (
+    df_Y_sample_info_filtered.groupby(["Population", "Major_Haplogroup"])
+    .size()
+    .reset_index(name="Count")
+)
+pop_freq["Group"] = pop_freq["Population"]
+
+super_freq = (
+    df_Y_sample_info_filtered.groupby(["Superpopulation", "Major_Haplogroup"])
+    .size()
+    .reset_index(name="Count")
+)
+super_freq["Group"] = super_freq["Superpopulation"]
+
+freq_df = pd.concat([pop_freq, super_freq], axis=0)
+freq_df["Proportions"] = freq_df.groupby("Group")["Count"].transform(lambda x: x / x.sum())
+
+freq_df[freq_df["Population"]=="KOR"].sort_values(by="Count", ascending=False)
+freq_df.to_excel("/BiO/Access/kyungwhan1998/genome/paper/Supplementary_Table_Y.xlsx")
+
+haplo_order= (
+    freq_df.groupby("Major_Haplogroup")["Proportions"]
+    .mean()
+    .sort_values(ascending=False)
+    .index.tolist()
+)
+all_haplos = freq_df["Major_Haplogroup"].unique().tolist()
+haplo_order = haplo_order+ [h for h in all_haplos if h not in haplo_order]
+
+group_order = ["AFR", "EUR", "CHB", "JPT", "KOR"]
+pivot_df = freq_df.pivot(index="Group", columns="Major_Haplogroup", values="Proportions").fillna(0)
+pivot_df = pivot_df.reindex([g for g in group_order if g in pivot_df.index])
+
+palette = sns.color_palette("tab20", n_colors=len(haplo_order))
+haplo_color_dict = dict(zip(haplo_order, palette))
+
+added_labels = set()
+for idx, group in enumerate(pivot_df.index):
+    row = pivot_df.loc[group]
+    row_sorted = row[row > 0].sort_values(ascending=False)
+
+    left = 0
+    for haplo, val in row_sorted.items():
+        color = haplo_color_dict.get(haplo, "lightgrey") if val > 0.1 else "lightgrey"
+
+        axD.barh(
+            group,
+            val,
+            left=left,
+            height=1,
+            color=color,
+            linewidth=0.5,
+            edgecolor="black"
+        )
+
+        if val > 0.1:
+            text = f"{haplo} ({val*100:.1f}%)"
+            axD.text(
+                left + val / 2,
+                idx,
+                text,
+                va="center",
+                ha="center",
+                color="k",
+                fontsize=plt.rcParams["font.size"],
+                weight="bold",
+            )
+
+
+        left += val
+
+axD.set_xlim(0, 1)
+axD.set_xticks(np.arange(0, 1.1, 0.1))
+axD.set_xlabel("Proportions", fontsize=plt.rcParams["font.size"]+5, weight="bold")
+axD.set_ylabel("")
+axD.tick_params(axis="y", labelsize=plt.rcParams["font.size"]+2)
+axD.tick_params(axis="x", labelsize=plt.rcParams["font.size"])
+
+for axis in ["top", "bottom", "left", "right"]:
+    axD.spines[axis].set_linewidth(2)
+for i, label in enumerate(pivot_df.index):
+    axD.axhline(i + 0.5, color="black", lw=2)
+
+axD.set_ymargin(0)
+
+axD.text(
+    -0.09, 1.05,
+    "D",
+    transform=axD.transAxes,
+    fontsize=plt.rcParams["font.size"] + 10,
+    fontweight="bold",
+    va="top",
+    ha="left"
+)
+
+# %%
+path_mito_10K = "/BiO/Access/kyungwhan1998/genome/mitochondria/Resources/Korea10K.merged_chrM.final.sorted.normed.10239Samples_haplogrep3.txt"
+path_mito_1KGP = "/BiO/Access/kyungwhan1998/genome/mitochondria/Resources/1KGP_30X_20201028_CCDG_14151_B01_GRM_WGS_2020-08-05_chrM_filtered.recalibrated_variants.haplogrep3.txt"
+path_plink_fam = "/BiO/Access/kyungwhan1998/genome/admixture/Resources/Data/ku10k_1KGP/Merged_ku10k_1kgp.extract_overlap_snps.flipped_nonoverlap_snps.excluded_missnps.excluded_outlier_plus_nonKorean_samples.postmerge_QC_filtered.preprocssed.prune_200kb_0.5.pruned.fam"
+
+df_mito_10K = pd.read_csv(path_mito_10K, delim_whitespace=True)
+df_mito_1KGP = pd.read_csv(path_mito_1KGP, delim_whitespace=True)
+df_mito = pd.concat([df_mito_10K, df_mito_1KGP], axis=0)
+
+# Simplify haplogroups to major letter
+def simplify_haplogroup(h):
+    match = re.match(r"([A-Z]+)", h)
+    return match.group(1) if match else h
+
+df_mito["Major_Haplogroup"] = df_mito["Haplogroup"].apply(simplify_haplogroup)
+
+# Merge with sample info (assuming df_sample_info exists)
+df_mito_sample_info = pd.merge(df_mito, df_sample_info, on="SampleID", how="inner")
+
+# Filter samples based on PLINK fam
+with open(path_plink_fam, "r") as fr:
+    list_samples_filter_in = [line.split()[0] for line in fr.readlines()]
+
+df_mito_sample_info_filtered = df_mito_sample_info[
+    df_mito_sample_info["SampleID"].isin(list_samples_filter_in)
+]
+
+pop_freq = (
+    df_mito_sample_info_filtered.groupby(["Population", "Major_Haplogroup"])
+    .size()
+    .reset_index(name="Count")
+)
+pop_freq["Group"] = pop_freq["Population"]
+
+super_freq = (
+    df_mito_sample_info_filtered.groupby(["Superpopulation", "Major_Haplogroup"])
+    .size()
+    .reset_index(name="Count")
+)
+super_freq["Group"] = super_freq["Superpopulation"]
+
+freq_df = pd.concat([pop_freq, super_freq], axis=0)
+freq_df["Proportions"] = freq_df.groupby("Group")["Count"].transform(lambda x: x / x.sum())
+
+freq_df[freq_df["Population"]=="KOR"].sort_values(by="Count", ascending=False)
+freq_df.to_excel("/BiO/Access/kyungwhan1998/genome/paper/Supplementary_Table_MT.xlsx")
+
+haplo_order= (
+    freq_df.groupby("Major_Haplogroup")["Proportions"]
+    .mean()
+    .sort_values(ascending=False)
+    .index.tolist()
+)
+
+all_haplos = freq_df["Major_Haplogroup"].unique().tolist()
+haplo_order = haplo_order+ [h for h in all_haplos if h not in haplo_order]
+
+group_order = ["AFR", "EUR", "CHB", "JPT", "KOR"]
+
+pivot_df = freq_df.pivot(index="Group", columns="Major_Haplogroup", values="Proportions").fillna(0)
+pivot_df = pivot_df.reindex([g for g in group_order if g in pivot_df.index])
+
+palette = sns.color_palette("tab20", n_colors=len(haplo_order))
+haplo_color_dict = dict(zip(haplo_order, palette))
+
+added_labels = set()
+for idx, group in enumerate(pivot_df.index):  # pivot_df = MT haplogroup pivot table
+    row = pivot_df.loc[group]
+    row_sorted = row[row > 0].sort_values(ascending=False)
+
+    left = 0
+    for haplo, val in row_sorted.items():
+        color = haplo_color_dict.get(haplo, "lightgrey") if val > 0.1 else "lightgrey"
+
+        axE.barh(
+            group,
+            val,
+            left=left,
+            height=1,
+            color=color,
+            linewidth=0.5,
+            edgecolor="black"
+        )
+
+        if val > 0.1:
+            text = f"{haplo} ({val*100:.1f}%)"
+            axE.text(left + val / 2, idx, text, va="center", ha="center",
+                     color="k", fontsize=plt.rcParams["font.size"], weight="bold")
+        left += val
+
+axE.set_xlim(0, 1)
+axE.set_xticks(np.arange(0, 1.1, 0.1))
+axE.set_xlabel("Proportions", fontsize=plt.rcParams["font.size"]+5, weight="bold")
+axE.set_ylabel("")
+axE.tick_params(axis="y", labelsize=plt.rcParams["font.size"]+2)
+axE.tick_params(axis="x", labelsize=plt.rcParams["font.size"])
+
+for axis in ["top", "bottom", "left", "right"]:
+    axE.spines[axis].set_linewidth(2)
+for i, label in enumerate(pivot_df.index):
+    axE.axhline(i + 0.5, color="black", lw=2)
+
+axE.set_ymargin(0)
+
+axE.text(
+    -0.09, 1.05,
+    "E",
+    transform=axE.transAxes,
+    fontsize=plt.rcParams["font.size"] + 10,
+    fontweight="bold",
+    va="top",
+    ha="left"
+)
+
+path_hla_file = "/BiO/Access/kyungwhan1998/genome/hla/Resources/Data/1000GplusKOR_HLA.tsv"
+df_hla = pd.read_csv(path_hla_file, sep="\t")
+df_hla_filtered = df_hla[
+    df_hla["SampleID"].isin(list_samples_filter_in)
+]
+
+hla_alleles = pd.concat([
+    df_hla_filtered[['SampleID', 'A_1', 'Population', 'Superpopulation']].rename(columns={'A_1':'Allele'}),
+    df_hla_filtered[['SampleID', 'A_2', 'Population', 'Superpopulation']].rename(columns={'A_2':'Allele'})
+], axis=0)
+
+# Compute allele frequencies
+pop_freq = (
+    hla_alleles.groupby(['Population', 'Allele'])
+    .size()
+    .reset_index(name='Count')
+)
+pop_freq['Group'] = pop_freq['Population']
+
+super_freq = (
+    hla_alleles.groupby(['Superpopulation', 'Allele'])
+    .size()
+    .reset_index(name='Count')
+)
+super_freq['Group'] = super_freq['Superpopulation']
+
+freq_df = pd.concat([pop_freq, super_freq], axis=0)
+freq_df['Proportions'] = freq_df.groupby('Group')['Count'].transform(lambda x: x / x.sum())
+
+freq_df[freq_df["Population"]=="KOR"].sort_values(by="Count", ascending=False)
+freq_df.to_excel("/BiO/Access/kyungwhan1998/genome/paper/Supplementary_Table_HLA_A.xlsx")
+
+allele_order= (
+    freq_df.groupby("Allele")["Proportions"]
+    .mean()
+    .sort_values(ascending=False)
+    .index.tolist()
+)
+
+all_alleles = freq_df['Allele'].unique().tolist()
+allele_order = allele_order+ [a for a in all_alleles if a not in allele_order]
+
+# Group display order
+group_order = ["AFR", "EUR", "CHB", "JPT", "KOR"]
+
+# Pivot table
+pivot_df = freq_df.pivot(index='Group', columns='Allele', values='Proportions').fillna(0)
+pivot_df = pivot_df.reindex([g for g in group_order if g in pivot_df.index])
+
+# Color palette
+palette = sns.color_palette("tab20", n_colors=len(allele_order))
+allele_color_dict = dict(zip(allele_order, palette))
+
+added_labels = set()
+
+for idx, group in enumerate(pivot_df.index):
+    row = pivot_df.loc[group]
+    row_sorted = row[row > 0].sort_values(ascending=False)
+
+    left = 0
+    for allele, val in row_sorted.items():
+        # Only color bars with proportions > 0.05
+        color = allele_color_dict.get(allele, 'lightgrey') if val > 0.1 else 'lightgrey'
+
+        # Add label only once for legend if colored
+        label = allele if (allele not in added_labels and val > 0.1) else None
+        if label:
+            added_labels.add(allele)
+
+        axF.barh(
+            group,
+            val,
+            left=left,
+            height=1,
+            color=color,
+            linewidth=0.5,
+            edgecolor='black',
+            label=label
+        )
+
+        # Annotate only colored bars
+        if val > 0.1:
+            axF.text(
+                left + val / 2,
+                idx,
+                f"{val * 100:.1f}%",
+                va='center',
+                ha='center',
+                color='k',
+                fontsize=plt.rcParams['font.size'],
+                weight='bold',
+            )
+        left += val
+
+# Formatting
+axF.set_xlim(0, 1)
+axF.set_xticks(np.arange(0, 1.1, 0.1))
+axF.set_xlabel('Proportions', fontsize=plt.rcParams['font.size']+5, weight="bold")
+axF.set_ylabel('')
+axF.tick_params(axis='y', labelsize=plt.rcParams['font.size']+2)
+axF.tick_params(axis='x', labelsize=plt.rcParams['font.size'])
+
+# Axis and separators
+for axis in ['top','bottom','left','right']:
+    axF.spines[axis].set_linewidth(2)
+for i, label in enumerate(pivot_df.index):
+    axF.axhline(i + 0.5, color='black', lw=2)
+
+# Legend: top 10 alleles
+handles, labels = axF.get_legend_handles_labels()
+
+axF.legend(
+    handles,
+    labels,
+    loc='upper center',
+    bbox_to_anchor=(0.5, -0.5),
+    ncol=len(handles),
+    title='HLA-A Allele',
+    title_fontproperties={"weight": "bold", "size": plt.rcParams["font.size"]+2},
+    frameon=True
+)
+
+axF.set_ymargin(0)
+
+axF.text(
+    -0.09, 1.05,
+    "F",
+    transform=axF.transAxes,
+    fontsize=plt.rcParams["font.size"] + 10,
+    fontweight="bold",
+    va="top",
+    ha="left"
+)
