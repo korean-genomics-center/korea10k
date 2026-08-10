@@ -8,18 +8,19 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+from korea10k.config import WORK_DIR
 
 # %%
 # -----------------------------
 # 1. Load HLA table
 # -----------------------------
-hla_path = "/BiO/Access/kyungwhan1998/genome/hla/Resources/Data/1000GplusKOR_HLA.tsv"
+hla_path = f"{WORK_DIR}/genome/hla/Resources/Data/1000GplusKOR_HLA.tsv"
 hla_df = pd.read_csv(hla_path, sep="\t")
 
 # -----------------------------
 # 2. Load population coordinates
 # -----------------------------
-worldmap_coord_pop_json = "/BiO/Access/kyungwhan1998/genome/yhaplo/output/Korea10K/1000GplusKOR.pop.loc.json"
+worldmap_coord_pop_json = f"{WORK_DIR}/genome/yhaplo/output/Korea10K/1000GplusKOR.pop.loc.json"
 with open(worldmap_coord_pop_json, "r") as f:
     pop_coords = json.load(f)
 
@@ -138,13 +139,13 @@ from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 # -----------------------------
 # 1. Load HLA table
 # -----------------------------
-hla_path = "/BiO/Access/kyungwhan1998/genome/hla/Resources/Data/1000GplusKOR_HLA.tsv"
+hla_path = f"{WORK_DIR}/genome/hla/Resources/Data/1000GplusKOR_HLA.tsv"
 hla_df = pd.read_csv(hla_path, sep="\t")
 
 # -----------------------------
 # 2. Load population coordinates
 # -----------------------------
-worldmap_coord_pop_json = "/BiO/Access/kyungwhan1998/genome/yhaplo/output/Korea10K/1000GplusKOR.pop.loc.json"
+worldmap_coord_pop_json = f"{WORK_DIR}/genome/yhaplo/output/Korea10K/1000GplusKOR.pop.loc.json"
 with open(worldmap_coord_pop_json, "r") as f:
     pop_coords = json.load(f)
 
@@ -282,7 +283,7 @@ plt.rcParams["font.size"] = 20
 # -----------------------------
 # 1. Load HLA data
 # -----------------------------
-hla_path = "/BiO/Access/kyungwhan1998/genome/hla/Resources/Data/1000GplusKOR_HLA.tsv"
+hla_path = f"{WORK_DIR}/genome/hla/Resources/Data/1000GplusKOR_HLA.tsv"
 hla_df = pd.read_csv(hla_path, sep="\t")
 
 # -----------------------------

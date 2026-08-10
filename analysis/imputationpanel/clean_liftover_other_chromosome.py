@@ -1,8 +1,9 @@
 import os
 import subprocess
+from korea10k.config import CONDA_ENV_DIR, PROJECT_DIR, WORK_DIR
 
-bcftools = "/BiO/Research/Korea10KGenome/Resources/Tools/bcftools-1.20/bcftools"
-tabix = "/BiO/Access/kyungwhan1998/miniconda3/envs/shapeit/bin/tabix"
+bcftools = f"{PROJECT_DIR}/Resources/Tools/bcftools-1.20/bcftools"
+tabix = f"{CONDA_ENV_DIR}/shapeit/bin/tabix"
 
 # ------------ Utility functions ------------
 def get_context_for_qsub_submission(cmd, jobname, stderr_path, stdout_path, nthreads, hostname=[], hold_jids=[]):
@@ -80,9 +81,9 @@ def run(bcftools,
 
 # ------------ Main ------------
 if __name__ == "__main__":
-    input_dir = "/BiO/Access/kyungwhan1998/genome/shapeit/Resources/Data/kpgp_vcf"
-    output_dir = "/BiO/Access/kyungwhan1998/genome/shapeit/Resources/Data/kpgp_vcf"
-    workdir = "/BiO/Access/kyungwhan1998/genome/shapeit/Resources/Data/kpgp_vcf/other_chr_fix"
+    input_dir = f"{WORK_DIR}/genome/shapeit/Resources/Data/kpgp_vcf"
+    output_dir = f"{WORK_DIR}/genome/shapeit/Resources/Data/kpgp_vcf"
+    workdir = f"{WORK_DIR}/genome/shapeit/Resources/Data/kpgp_vcf/other_chr_fix"
     os.makedirs(workdir, exist_ok=True)
     list_file_vcfs = sorted(list(filter(lambda x: str(x).endswith(".bgz"), os.listdir(input_dir))))
     # list_file_vcfs_filt = list(filter(lambda x: "chrname_fixed.vcf" in x, list_file_vcfs))

@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 from matplotlib.patches import Patch
+from korea10k.config import PROJECT_DIR, WORK_DIR
 
 # %%
 plt.rcParams.update({
@@ -90,10 +91,10 @@ def heighten_axis(ax, factor=1.15, anchor="bottom"):
 # heighten_axis(axC, factor=2.2, anchor="top")
 # heighten_axis(axC1, factor=2.2, anchor="bottom")
 
-workdir = "/BiO/Access/kyungwhan1998/genome/admixture/Resources/Data/ku10k_1KGP"
+workdir = f"{WORK_DIR}/genome/admixture/Resources/Data/ku10k_1KGP"
 path_eigenval = os.path.join(workdir, "Merged_ku10k_1kgp.extract_overlap_snps.flipped_nonoverlap_snps.excluded_missnps.excluded_outlier_plus_nonKorean_samples.postmerge_QC_filtered.preprocssed.prune_200kb_0.5.pca.eigenval")
 path_eigenvec = os.path.join(workdir, "Merged_ku10k_1kgp.extract_overlap_snps.flipped_nonoverlap_snps.excluded_missnps.excluded_outlier_plus_nonKorean_samples.postmerge_QC_filtered.preprocssed.prune_200kb_0.5.pca.eigenvec")
-path_sample_info_1KGP = "/BiO/Research/Korea10KGenome/Resources/External_Genome_Data/1KGP/1KGP_30x_GRCh38/20130606_g1k_3202_samples_ped_population.txt"
+path_sample_info_1KGP = f"{PROJECT_DIR}/Resources/External_Genome_Data/1KGP/1KGP_30x_GRCh38/20130606_g1k_3202_samples_ped_population.txt"
 
 eigenval = pd.read_csv(path_eigenval, sep="\t", header=None)
 eigenval = eigenval.rename(columns={0:"VarianceExplained"})
@@ -260,10 +261,10 @@ axA.text(
     ha="left"
 )
 
-workdir = "/BiO/Access/kyungwhan1998/genome/admixture/Resources/Data/ku10k_1KGP"
+workdir = f"{WORK_DIR}/genome/admixture/Resources/Data/ku10k_1KGP"
 path_eigenval = os.path.join(workdir, "Merged_ku10k_1kgp.extract_overlap_snps.flipped_nonoverlap_snps.excluded_missnps.9000Koreans+1KGPEAS_samples.postmerge_QC_filtered.Merged_chr.biallelic.Autosome.varname.geno_0.01.mind_0.1.hwe_1e6.het_3std.kinship_3rd.prune.200kb_0.5.pca.eigenval")
 path_eigenvec = os.path.join(workdir, "Merged_ku10k_1kgp.extract_overlap_snps.flipped_nonoverlap_snps.excluded_missnps.9000Koreans+1KGPEAS_samples.postmerge_QC_filtered.Merged_chr.biallelic.Autosome.varname.geno_0.01.mind_0.1.hwe_1e6.het_3std.kinship_3rd.prune.200kb_0.5.pca.eigenvec")
-path_sample_info_1KGP = "/BiO/Research/Korea10KGenome/Resources/External_Genome_Data/1KGP/1KGP_30x_GRCh38/20130606_g1k_3202_samples_ped_population.txt"
+path_sample_info_1KGP = f"{PROJECT_DIR}/Resources/External_Genome_Data/1KGP/1KGP_30x_GRCh38/20130606_g1k_3202_samples_ped_population.txt"
 
 eigenval = pd.read_csv(path_eigenval, sep="\t", header=None)
 eigenval = eigenval.rename(columns={0:"VarianceExplained"})
@@ -399,7 +400,7 @@ axB.text(
 )
 
 K = 7
-workdir = "/BiO/Access/kyungwhan1998/genome/admixture/Results"
+workdir = f"{WORK_DIR}/genome/admixture/Results"
 Qpop_sorted_file = os.path.join(workdir, f"admixture_plot_input_K{K}.txt")
 pop_order_file = os.path.join(workdir, "pop_order.txt")
 
@@ -635,11 +636,11 @@ axC.text(
 )
 # %%
 
-# path_Y_10K = "/BiO/Access/kyungwhan1998/genome/yhaplo/output/Korea10K_Male_Only/haplogroups.chrY.biallelic.hg19.liftover.haploid.fixed.male.filtered.txt"
-path_Y_10K = "/BiO/Access/kyungwhan1998/genome/ychrom/Korea10K/haplogroups.korea10K.jointcall.removeDup.biallelic.chrY.liftover.txt"
-path_Y_1KGP = "/BiO/Access/kyungwhan1998/genome/yhaplo/output/1000Genomes/haplogroups.1000Y.all.txt"
+# path_Y_10K = f"{WORK_DIR}/genome/yhaplo/output/Korea10K_Male_Only/haplogroups.chrY.biallelic.hg19.liftover.haploid.fixed.male.filtered.txt"
+path_Y_10K = f"{WORK_DIR}/genome/ychrom/Korea10K/haplogroups.korea10K.jointcall.removeDup.biallelic.chrY.liftover.txt"
+path_Y_1KGP = f"{WORK_DIR}/genome/yhaplo/output/1000Genomes/haplogroups.1000Y.all.txt"
 
-path_plink_fam = "/BiO/Access/kyungwhan1998/genome/admixture/Resources/Data/ku10k_1KGP/Merged_ku10k_1kgp.extract_overlap_snps.flipped_nonoverlap_snps.excluded_missnps.excluded_outlier_plus_nonKorean_samples.postmerge_QC_filtered.preprocssed.prune_200kb_0.5.pruned.fam"
+path_plink_fam = f"{WORK_DIR}/genome/admixture/Resources/Data/ku10k_1KGP/Merged_ku10k_1kgp.extract_overlap_snps.flipped_nonoverlap_snps.excluded_missnps.excluded_outlier_plus_nonKorean_samples.postmerge_QC_filtered.preprocssed.prune_200kb_0.5.pruned.fam"
 df_Y_10K = pd.read_csv(path_Y_10K, delim_whitespace=True, header=None)
 df_Y_10K.columns = ["SampleID", "Haplogroup", "Macro_haplogroup", "Simplified_haplogroup"]
 df_Y_10K_excl_Ahaplo = df_Y_10K[~df_Y_10K["Macro_haplogroup"].str.startswith("A")]
@@ -685,7 +686,7 @@ freq_df = pd.concat([pop_freq, super_freq], axis=0)
 freq_df["Proportions"] = freq_df.groupby("Group")["Count"].transform(lambda x: x / x.sum())
 
 freq_df[freq_df["Population"]=="KOR"].sort_values(by="Count", ascending=False)
-freq_df.to_excel("/BiO/Access/kyungwhan1998/genome/paper/Supplementary_Table_Y.xlsx")
+freq_df.to_excel(f"{WORK_DIR}/genome/paper/Supplementary_Table_Y.xlsx")
 
 haplo_order= (
     freq_df.groupby("Major_Haplogroup")["Proportions"]
@@ -763,9 +764,9 @@ axD.text(
 )
 
 # %%
-path_mito_10K = "/BiO/Access/kyungwhan1998/genome/mitochondria/Resources/Korea10K.merged_chrM.final.sorted.normed.10239Samples_haplogrep3.txt"
-path_mito_1KGP = "/BiO/Access/kyungwhan1998/genome/mitochondria/Resources/1KGP_30X_20201028_CCDG_14151_B01_GRM_WGS_2020-08-05_chrM_filtered.recalibrated_variants.haplogrep3.txt"
-path_plink_fam = "/BiO/Access/kyungwhan1998/genome/admixture/Resources/Data/ku10k_1KGP/Merged_ku10k_1kgp.extract_overlap_snps.flipped_nonoverlap_snps.excluded_missnps.excluded_outlier_plus_nonKorean_samples.postmerge_QC_filtered.preprocssed.prune_200kb_0.5.pruned.fam"
+path_mito_10K = f"{WORK_DIR}/genome/mitochondria/Resources/Korea10K.merged_chrM.final.sorted.normed.10239Samples_haplogrep3.txt"
+path_mito_1KGP = f"{WORK_DIR}/genome/mitochondria/Resources/1KGP_30X_20201028_CCDG_14151_B01_GRM_WGS_2020-08-05_chrM_filtered.recalibrated_variants.haplogrep3.txt"
+path_plink_fam = f"{WORK_DIR}/genome/admixture/Resources/Data/ku10k_1KGP/Merged_ku10k_1kgp.extract_overlap_snps.flipped_nonoverlap_snps.excluded_missnps.excluded_outlier_plus_nonKorean_samples.postmerge_QC_filtered.preprocssed.prune_200kb_0.5.pruned.fam"
 
 df_mito_10K = pd.read_csv(path_mito_10K, delim_whitespace=True)
 df_mito_1KGP = pd.read_csv(path_mito_1KGP, delim_whitespace=True)
@@ -807,7 +808,7 @@ freq_df = pd.concat([pop_freq, super_freq], axis=0)
 freq_df["Proportions"] = freq_df.groupby("Group")["Count"].transform(lambda x: x / x.sum())
 
 freq_df[freq_df["Population"]=="KOR"].sort_values(by="Count", ascending=False)
-freq_df.to_excel("/BiO/Access/kyungwhan1998/genome/paper/Supplementary_Table_MT.xlsx")
+freq_df.to_excel(f"{WORK_DIR}/genome/paper/Supplementary_Table_MT.xlsx")
 
 haplo_order= (
     freq_df.groupby("Major_Haplogroup")["Proportions"]
@@ -876,7 +877,7 @@ axE.text(
     ha="left"
 )
 
-path_hla_file = "/BiO/Access/kyungwhan1998/genome/hla/Resources/Data/1000GplusKOR_HLA.tsv"
+path_hla_file = f"{WORK_DIR}/genome/hla/Resources/Data/1000GplusKOR_HLA.tsv"
 df_hla = pd.read_csv(path_hla_file, sep="\t")
 df_hla_filtered = df_hla[
     df_hla["SampleID"].isin(list_samples_filter_in)
@@ -906,7 +907,7 @@ freq_df = pd.concat([pop_freq, super_freq], axis=0)
 freq_df['Proportions'] = freq_df.groupby('Group')['Count'].transform(lambda x: x / x.sum())
 
 freq_df[freq_df["Population"]=="KOR"].sort_values(by="Count", ascending=False)
-freq_df.to_excel("/BiO/Access/kyungwhan1998/genome/paper/Supplementary_Table_HLA_A.xlsx")
+freq_df.to_excel(f"{WORK_DIR}/genome/paper/Supplementary_Table_HLA_A.xlsx")
 
 allele_order= (
     freq_df.groupby("Allele")["Proportions"]

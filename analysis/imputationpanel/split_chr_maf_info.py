@@ -2,10 +2,11 @@
 import os
 
 from joblib import Parallel, delayed
+from korea10k.config import PROJECT_DIR, WORK_DIR
 
 # %%
-path_freq = "/BiO/Research/Korea10KGenome/Results/Plink.JointCall.to.hg38.with.AdapterTrimmedRead.for.BWA.mem.by.GATK.HaplotypeCaller.BoundaryMerged.RemoveABHetOutlier2STD.VQSR.PASS/Plink_Final/chromosome_merged.qc_filtered.kinship_filtered/Merged_chr.biallelic.Autosome.varname.geno_0.01.mind_0.1.hwe_1e6.het_3std.excesshet_60.abhet_0.4.abhom_0.1.adsupport_0.9.kinship_3rd_freq.afreq"
-outdir = "/BiO/Access/kyungwhan1998/genome/shapeit/Results/imputation/maf_info"
+path_freq = f"{PROJECT_DIR}/Results/Plink.JointCall.to.hg38.with.AdapterTrimmedRead.for.BWA.mem.by.GATK.HaplotypeCaller.BoundaryMerged.RemoveABHetOutlier2STD.VQSR.PASS/Plink_Final/chromosome_merged.qc_filtered.kinship_filtered/Merged_chr.biallelic.Autosome.varname.geno_0.01.mind_0.1.hwe_1e6.het_3std.excesshet_60.abhet_0.4.abhom_0.1.adsupport_0.9.kinship_3rd_freq.afreq"
+outdir = f"{WORK_DIR}/genome/shapeit/Results/imputation/maf_info"
 os.makedirs(outdir, exist_ok=True)
 outfreq = os.path.join(outdir, "chr{i}_maf_10K.txt")
     

@@ -1,8 +1,9 @@
 import os
 import subprocess
+from korea10k.config import CONDA_ENV_DIR, PROJECT_DIR, WORK_DIR
 
-bcftools = "/BiO/Research/Korea10KGenome/Resources/Tools/bcftools-1.20/bcftools"
-tabix = "/BiO/Access/kyungwhan1998/miniconda3/envs/shapeit/bin/tabix"
+bcftools = f"{PROJECT_DIR}/Resources/Tools/bcftools-1.20/bcftools"
+tabix = f"{CONDA_ENV_DIR}/shapeit/bin/tabix"
 
 # ------------ Utility functions ------------
 
@@ -75,9 +76,9 @@ def run(bcftools,
 
 # ------------ Main ------------
 if __name__ == "__main__":
-    input_dir = "/BiO/Access/kyungwhan1998/genome/shapeit/Resources/Data/reference_panel/10K"
-    output_dir = "/BiO/Access/kyungwhan1998/genome/shapeit/Resources/Data/reference_panel/10K"
-    workdir = "/BiO/Access/kyungwhan1998/genome/shapeit/Resources/Data/reference_panel/10K/run"
+    input_dir = f"{WORK_DIR}/genome/shapeit/Resources/Data/reference_panel/10K"
+    output_dir = f"{WORK_DIR}/genome/shapeit/Resources/Data/reference_panel/10K"
+    workdir = f"{WORK_DIR}/genome/shapeit/Resources/Data/reference_panel/10K/run"
     os.makedirs(workdir, exist_ok=True)
     list_file_vcfs = sorted(list(filter(lambda x: str(x).endswith(".bcf"), os.listdir(input_dir))))
     list_file_vcfs_filt = list(filter(lambda x: ".phased.concat.bcf" in x, list_file_vcfs))

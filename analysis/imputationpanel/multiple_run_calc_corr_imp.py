@@ -4,9 +4,10 @@ import os
 import subprocess
 
 import pandas as pd
+from korea10k.config import WORK_DIR
 
 # ====================== CONFIGURATION ======================
-workdir = "/BiO/Access/kyungwhan1998/genome/shapeit"
+workdir = f"{WORK_DIR}/genome/shapeit"
 
 corr_script = os.path.join(
     workdir,

@@ -5,6 +5,7 @@ import pickle
 import numpy as np
 import pandas as pd
 from scipy import stats
+from korea10k.config import PROJECT_DIR, WORK_DIR
 
 # %%
 list_shuffles = list(range(0, 100))
@@ -21,7 +22,7 @@ dict_frequency_palette = {
     "Very Common": "#1203ae"
 } 
 
-path_summary_format = "/BiO/Research/Korea10KGenome/Results/VariantDiscoveryStatistics/Summarized_Discovery_Index.remove_nonKorean/Summarized_Discovered_Index.korea10k_samples.RemoveABHetOutlier2STD.mind_0.1.het_3std.kinship_3rd.remove_nonKorean.shuffle_{ind}.txt"
+path_summary_format = PROJECT_DIR + "/Results/VariantDiscoveryStatistics/Summarized_Discovery_Index.remove_nonKorean/Summarized_Discovered_Index.korea10k_samples.RemoveABHetOutlier2STD.mind_0.1.het_3std.kinship_3rd.remove_nonKorean.shuffle_{ind}.txt"
 
 # %%
 dict_frequency_type_to_dict_cumsum = dict()
@@ -90,7 +91,7 @@ def dump_pickle(file_dump, dict_dump):
         pickle.dump(dict_dump, fw, protocol=pickle.HIGHEST_PROTOCOL)
 
 
-dir_freqtype = "/BiO/Access/kyungwhan1998/genome/shapeit/Resources/Data/plot"
+dir_freqtype = f"{WORK_DIR}/genome/shapeit/Resources/Data/plot"
 file_frequency_type_to_mean_line = os.path.join(dir_freqtype, "dict_frequency_type_to_mean_line.pkl")
 file_frequency_type_to_saturation_points = os.path.join(dir_freqtype, "dict_frequency_type_to_saturation_points.pkl")
 

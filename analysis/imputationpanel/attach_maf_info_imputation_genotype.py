@@ -3,6 +3,7 @@ import gzip
 import os
 
 from joblib import Parallel, delayed
+from korea10k.config import WORK_DIR
 
 
 # %%
@@ -94,7 +95,7 @@ def add_variant_category(i, panel, R_maf_template, R_maf_cat_template, header):
 
 # %%
 # Paths and templates
-workdir = "/BiO/Access/kyungwhan1998/genome/shapeit/Results/imputation"
+workdir = f"{WORK_DIR}/genome/shapeit/Results/imputation"
 
 R_template = os.path.join(workdir, "corr_results/chr{i}.dose.{panel}.concat.corr.txt.gz")
 maf_template = os.path.join(workdir, "maf_info/chr{i}_maf_10K.txt")

@@ -5,6 +5,7 @@ import gzip
 import os
 
 from joblib import Parallel, delayed
+from korea10k.config import WORK_DIR
 
 
 # %%
@@ -38,6 +39,6 @@ def concat_corr_files(dir_corr, chrom, panel):
     print(f"✅ Done. Merged {len(files)} chunk(s) into {outfile}")
 
 
-dir_corr = "/BiO/Access/kyungwhan1998/genome/shapeit/Results/imputation/corr_results"
+dir_corr = f"{WORK_DIR}/genome/shapeit/Results/imputation/corr_results"
 with Parallel(n_jobs=23) as parallel:
     parallel(delayed(concat_corr_files)(dir_corr, chrom=i, panel="4K") for i in range(1, 23, 1))

@@ -6,12 +6,13 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+from korea10k.config import WORK_DIR
 
 # %%
 plt.rcParams["font.size"] = 16
 plt.rcParams["axes.linewidth"] = 1.2
 
-workdir = "/BiO/Access/kyungwhan1998/genome/shapeit/Results/imputation"
+workdir = f"{WORK_DIR}/genome/shapeit/Results/imputation"
 R2_maf_cat_template = os.path.join(
     workdir, "corr_results/chr{i}.dose.{panel}.concat.corr.maf_10K_cat_added.txt.gz"
 )

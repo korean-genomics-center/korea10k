@@ -7,6 +7,7 @@ import numpy as np
 import seaborn as sns
 from matplotlib import pyplot as plt
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+from korea10k.config import WORK_DIR
 
 
 # %%
@@ -17,7 +18,7 @@ def load_pickle(path_pkl):
     return file_load
         
 # %%
-dir_variant = "/BiO/Access/kyungwhan1998/genome/variant/Data"
+dir_variant = f"{WORK_DIR}/genome/variant/Data"
 path_pkl_count_freq_reported = os.path.join(dir_variant, "count_freq_reported.pkl")
 path_pkl_count_freq_novel = os.path.join(dir_variant, "count_freq_novel.pkl")
 path_pkl_count_freq_all = os.path.join(dir_variant, "count_freq_all.pkl")

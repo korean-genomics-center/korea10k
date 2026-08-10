@@ -9,9 +9,10 @@ import pandas as pd
 import seaborn as sns
 from matplotlib.patches import FancyArrowPatch, Patch, Rectangle
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+from korea10k.config import WORK_DIR
 
 # %%
-path_cohort = "/BiO/Access/kyungwhan1998/genome/depthCoverage/10243sample_list.xlsx"
+path_cohort = f"{WORK_DIR}/genome/depthCoverage/10243sample_list.xlsx"
 df_cohort = pd.read_excel(path_cohort)
 
 # %%
@@ -42,7 +43,7 @@ df_pheno.columns = ["Category", "Count"]
 # %% 
 import json
 
-path_translate_dict = "/BiO/Access/kyungwhan1998/genome/depthCoverage/convert_disease_category_kor_to_eng.json"
+path_translate_dict = f"{WORK_DIR}/genome/depthCoverage/convert_disease_category_kor_to_eng.json"
 with open(path_translate_dict, mode="rb") as fr:
     translate_dict = json.load(fr)
 df_pheno["Category_EN"] = df_pheno["Category"].map(translate_dict)

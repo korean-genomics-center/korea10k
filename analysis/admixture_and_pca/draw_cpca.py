@@ -6,9 +6,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+from korea10k.config import PROJECT_DIR, WORK_DIR
 
 # %%
-workdir = "/BiO/Access/kyungwhan1998/genome/admixture/Resources/Data/ku10k_1KGP"
+workdir = f"{WORK_DIR}/genome/admixture/Resources/Data/ku10k_1KGP"
 
 # %%
 path_eigenval = os.path.join(workdir, "Merged_ku10k_1kgp.extract_overlap_snps.flipped_nonoverlap_snps.excluded_missnps.exclude_outlier_samples.include_eas_samples_only.postmerge_QC_filtered.biallelic.Autosome.varname.geno_0.01.mind_0.1.hwe_1e6.het_3std.kinship_3rd.prune.200kb_0.5.pca.eigenval")
@@ -33,7 +34,7 @@ df_sample_info_10K = pd.DataFrame(dict_sample_info_10K)
 df_sample_info_10K
 
 # %%
-path_sample_info_1KGP = "/BiO/Research/Korea10KGenome/Resources/External_Genome_Data/1KGP/1KGP_30x_GRCh38/20130606_g1k_3202_samples_ped_population.txt"
+path_sample_info_1KGP = f"{PROJECT_DIR}/Resources/External_Genome_Data/1KGP/1KGP_30x_GRCh38/20130606_g1k_3202_samples_ped_population.txt"
 df_sample_info_1KGP = pd.read_csv(path_sample_info_1KGP, delim_whitespace=True)[["SampleID", "Population", "Superpopulation"]]
 
 # %%

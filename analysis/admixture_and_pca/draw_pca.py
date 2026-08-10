@@ -6,16 +6,17 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+from korea10k.config import PROJECT_DIR, WORK_DIR
 
 # %%
-path_eigenval = "/BiO/Access/kyungwhan1998/genome/pca/Resources/Data/ku10k_1KGP/Merged_ku10k_1kgp.extract_overlap_snps.flipped_nonoverlap_snps.excluded_missnps.postmerge_QC_filtered.Merged_chr.biallelic.Autosome.varname.geno_0.01.mind_0.1.hwe_1e6.het_3std.kinship_3rd.LD_pruning_200kb_0.5.pruned.pca.eigenval"
+path_eigenval = f"{WORK_DIR}/genome/pca/Resources/Data/ku10k_1KGP/Merged_ku10k_1kgp.extract_overlap_snps.flipped_nonoverlap_snps.excluded_missnps.postmerge_QC_filtered.Merged_chr.biallelic.Autosome.varname.geno_0.01.mind_0.1.hwe_1e6.het_3std.kinship_3rd.LD_pruning_200kb_0.5.pruned.pca.eigenval"
 eigenval = pd.read_csv(path_eigenval, sep="\t", header=None)
 eigenval = eigenval.rename(columns={0:"VarianceExplained"})
 eigenval["PropVarianceExplained"] = round(eigenval["VarianceExplained"]/sum(eigenval["VarianceExplained"])*100, 1)
 eigenval
 
 # %%
-path_eigenvec = "/BiO/Access/kyungwhan1998/genome/pca/Resources/Data/ku10k_1KGP/Merged_ku10k_1kgp.extract_overlap_snps.flipped_nonoverlap_snps.excluded_missnps.postmerge_QC_filtered.Merged_chr.biallelic.Autosome.varname.geno_0.01.mind_0.1.hwe_1e6.het_3std.kinship_3rd.LD_pruning_200kb_0.5.pruned.pca.eigenvec"
+path_eigenvec = f"{WORK_DIR}/genome/pca/Resources/Data/ku10k_1KGP/Merged_ku10k_1kgp.extract_overlap_snps.flipped_nonoverlap_snps.excluded_missnps.postmerge_QC_filtered.Merged_chr.biallelic.Autosome.varname.geno_0.01.mind_0.1.hwe_1e6.het_3std.kinship_3rd.LD_pruning_200kb_0.5.pruned.pca.eigenvec"
 eigenvec = pd.read_csv(path_eigenvec, sep="\t")
 eigenvec = eigenvec.rename(columns={"#FID":"SampleID"})
 
@@ -28,7 +29,7 @@ df_sample_info_10K = pd.DataFrame(dict_sample_info_10K)
 df_sample_info_10K
 
 # %%
-path_sample_info_1KGP = "/BiO/Research/Korea10KGenome/Resources/External_Genome_Data/1KGP/1KGP_30x_GRCh38/20130606_g1k_3202_samples_ped_population.txt"
+path_sample_info_1KGP = f"{PROJECT_DIR}/Resources/External_Genome_Data/1KGP/1KGP_30x_GRCh38/20130606_g1k_3202_samples_ped_population.txt"
 df_sample_info_1KGP = pd.read_csv(path_sample_info_1KGP, delim_whitespace=True)[["SampleID", "Population", "Superpopulation"]]
 
 # %%
@@ -265,7 +266,7 @@ plt.show()
 plt.close()
 
 # %%
-file_samples_exclude = "/BiO/Access/kyungwhan1998/genome/admixture/Resources/Data/ku10k_1KGP/remove_samples.list"
+file_samples_exclude = f"{WORK_DIR}/genome/admixture/Resources/Data/ku10k_1KGP/remove_samples.list"
 with open(file_samples_exclude, mode="w") as fw:
     fw.write("\t".join(["#FID", "IID"]) + "\n")
     for sample in list_samples_exclude:
@@ -277,7 +278,7 @@ eas_samples = eigenvec_sample_info_merged[
 ]
 eas_samples = eas_samples[~eas_samples["SampleID"].isin(list_samples_exclude)]
 
-file_samples_include = "/BiO/Access/kyungwhan1998/genome/admixture/Resources/Data/ku10k_1KGP/include_eas_samples.list"
+file_samples_include = f"{WORK_DIR}/genome/admixture/Resources/Data/ku10k_1KGP/include_eas_samples.list"
 with open(file_samples_include, mode="w") as fw:
     fw.write("\t".join(["#FID", "IID"]) + "\n")
     for sample in eas_samples["SampleID"]:
@@ -289,7 +290,7 @@ eas_samples = eigenvec_sample_info_merged[
 ]
 eas_samples = eas_samples[~eas_samples["SampleID"].isin(list_samples_exclude)]
 
-file_samples_include = "/BiO/Access/kyungwhan1998/genome/admixture/Resources/Data/ku10k_1KGP/include_eas_samples.list"
+file_samples_include = f"{WORK_DIR}/genome/admixture/Resources/Data/ku10k_1KGP/include_eas_samples.list"
 with open(file_samples_include, mode="w") as fw:
     fw.write("\t".join(["#FID", "IID"]) + "\n")
     for sample in eas_samples["SampleID"]:
@@ -298,7 +299,7 @@ with open(file_samples_include, mode="w") as fw:
 # %%
 kor_samples = eas_samples[eas_samples["Population"] == "KOR"]
 
-file_samples_include = "/BiO/Access/kyungwhan1998/genome/admixture/Resources/Data/ku10k_1KGP/Koreans.list"
+file_samples_include = f"{WORK_DIR}/genome/admixture/Resources/Data/ku10k_1KGP/Koreans.list"
 with open(file_samples_include, mode="w") as fw:
     fw.write("\t".join(["#FID", "IID"]) + "\n")
     for sample in kor_samples["SampleID"]:

@@ -2,8 +2,9 @@
 import os
 import re
 from collections import Counter
+from korea10k.config import WORK_DIR
 
-workdir = "/BiO/Access/kyungwhan1998/genome/shapeit/Resources/Data/chip"
+workdir = f"{WORK_DIR}/genome/shapeit/Resources/Data/chip"
 path_manifest = f"{workdir}/InfiniumOmni2-5-8v1-5_A1.csv"
 path_rsid_conversion = f"{workdir}/InfiniumOmni2-5-8v1-5_A1_b151_rsids.txt"
 

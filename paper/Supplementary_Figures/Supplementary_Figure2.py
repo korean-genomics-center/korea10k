@@ -10,6 +10,7 @@ import pandas as pd
 import seaborn as sns
 from matplotlib.ticker import FuncFormatter
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+from korea10k.config import WORK_DIR
 
 
 # -------------------- Helper --------------------
@@ -44,7 +45,7 @@ display_label_map = {
 fig, ax = plt.subplots(figsize=(5, 5))
 
 # Load data
-dir_variant_plot = "/BiO/Access/kyungwhan1998/genome/shapeit/Resources/Data/plot"
+dir_variant_plot = f"{WORK_DIR}/genome/shapeit/Resources/Data/plot"
 dict_frequency_type_to_mean_line = load_pickle(
     os.path.join(dir_variant_plot, "dict_frequency_type_to_mean_line.pkl")
 )

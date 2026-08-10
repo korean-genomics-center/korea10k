@@ -1,0 +1,10 @@
+# Local, site-specific path configuration — never commit real server paths.
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/

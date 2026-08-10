@@ -1,8 +1,9 @@
 import os
 import subprocess
+from korea10k.config import CONDA_ENV_DIR, PROJECT_DIR, WORK_DIR
 
-bcftools = "/BiO/Research/Korea10KGenome/Resources/Tools/bcftools-1.20/bcftools"
-tabix = "/BiO/Access/kyungwhan1998/miniconda3/envs/shapeit/bin/tabix"
+bcftools = f"{PROJECT_DIR}/Resources/Tools/bcftools-1.20/bcftools"
+tabix = f"{CONDA_ENV_DIR}/shapeit/bin/tabix"
 
 # ------------ Utility functions ------------
 
@@ -76,14 +77,14 @@ def run(bcftools,
 
 # ------------ Main ------------
 if __name__ == "__main__":
-    # input_dir = "/BiO/Access/kyungwhan1998/genome/shapeit/Resources/Data/kpgp_vcf"
-    # output_dir = "/BiO/Access/kyungwhan1998/genome/shapeit/Resources/Data/kpgp_vcf"
-    # workdir = "/BiO/Access/kyungwhan1998/genome/shapeit/Resources/Data/kpgp_vcf/chrname_fix"
-    # chr_map = "/BiO/Access/kyungwhan1998/genome/shapeit/Resources/Data/kpgp_vcf/chr_map.txt"
-    input_dir = "/BiO/Access/kyungwhan1998/genome/shapeit/Resources/Data/grf_vcf/VCF_MatchedOnly"
-    output_dir = "/BiO/Access/kyungwhan1998/genome/shapeit/Resources/Data/grf_vcf/VCF_MatchedOnly"
-    workdir = "/BiO/Access/kyungwhan1998/genome/shapeit/Resources/Data/grf_vcf/VCF_MatchedOnly/run"
-    chr_map = "/BiO/Access/kyungwhan1998/genome/shapeit/Results/imputation/chr_map.txt"
+    # input_dir = f"{WORK_DIR}/genome/shapeit/Resources/Data/kpgp_vcf"
+    # output_dir = f"{WORK_DIR}/genome/shapeit/Resources/Data/kpgp_vcf"
+    # workdir = f"{WORK_DIR}/genome/shapeit/Resources/Data/kpgp_vcf/chrname_fix"
+    # chr_map = f"{WORK_DIR}/genome/shapeit/Resources/Data/kpgp_vcf/chr_map.txt"
+    input_dir = f"{WORK_DIR}/genome/shapeit/Resources/Data/grf_vcf/VCF_MatchedOnly"
+    output_dir = f"{WORK_DIR}/genome/shapeit/Resources/Data/grf_vcf/VCF_MatchedOnly"
+    workdir = f"{WORK_DIR}/genome/shapeit/Resources/Data/grf_vcf/VCF_MatchedOnly/run"
+    chr_map = f"{WORK_DIR}/genome/shapeit/Results/imputation/chr_map.txt"
     os.makedirs(workdir, exist_ok=True)
     list_file_vcfs = sorted(list(filter(lambda x: str(x).endswith(".vcf"), os.listdir(input_dir))))
     list_file_vcfs_filt = list(filter(lambda x: ".vcf" in x, list_file_vcfs))

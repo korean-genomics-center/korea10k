@@ -3,13 +3,14 @@ import os
 import pickle
 
 import pandas as pd
+from korea10k.config import PROJECT_DIR, WORK_DIR
 
 #%%
-table_maf = pd.read_csv("/BiO/Research/Korea10KGenome/Results/Plink.JointCall.to.hg38.with.AdapterTrimmedRead.for.BWA.mem.by.GATK.HaplotypeCaller.BoundaryMerged.RemoveABHetOutlier2STD.VQSR.PASS/Plink_Final/chromosome_merged.qc_filtered.kinship_filtered.nonKorean_filtered/Merged_chr.biallelic.Autosome.varname.geno_0.01.mind_0.1.hwe_1e6.het_3std.excesshet_60.abhet_0.4.abhom_0.1.adsupport_0.9.kinship_3rd.nonKorean.mac1.QC.acount", delim_whitespace = True)
+table_maf = pd.read_csv(f"{PROJECT_DIR}/Results/Plink.JointCall.to.hg38.with.AdapterTrimmedRead.for.BWA.mem.by.GATK.HaplotypeCaller.BoundaryMerged.RemoveABHetOutlier2STD.VQSR.PASS/Plink_Final/chromosome_merged.qc_filtered.kinship_filtered.nonKorean_filtered/Merged_chr.biallelic.Autosome.varname.geno_0.01.mind_0.1.hwe_1e6.het_3std.excesshet_60.abhet_0.4.abhom_0.1.adsupport_0.9.kinship_3rd.nonKorean.mac1.QC.acount", delim_whitespace = True)
 
 list_chrname = list(map(lambda val: f"chr{val}", range(1, 23)))
 table_varid_conv = pd.concat(
-    list(map(lambda chrname: pd.read_csv(f"/BiO/Research/Korea10KGenome/Results/Plink.JointCall.to.hg38.with.AdapterTrimmedRead.for.BWA.mem.by.GATK.HaplotypeCaller.BoundaryMerged.RemoveABHetOutlier2STD.VQSR.PASS/Plink_Final/chromosome_merged.qc_filtered.kinship_filtered.nonKorean_filtered/dbSNP_Annotate/VarID_Conversion/ConversionTable.PlinkID_to_rsID.{chrname}.tsv", sep = '\t'), list_chrname))
+    list(map(lambda chrname: pd.read_csv(f"{PROJECT_DIR}/Results/Plink.JointCall.to.hg38.with.AdapterTrimmedRead.for.BWA.mem.by.GATK.HaplotypeCaller.BoundaryMerged.RemoveABHetOutlier2STD.VQSR.PASS/Plink_Final/chromosome_merged.qc_filtered.kinship_filtered.nonKorean_filtered/dbSNP_Annotate/VarID_Conversion/ConversionTable.PlinkID_to_rsID.{chrname}.tsv", sep = '\t'), list_chrname))
 )
 
 #%%
@@ -76,7 +77,7 @@ for vartype in ["SNP", "INS", "DEL"]:
 
 
 # %%
-dir_vartype = "/BiO/Access/kyungwhan1998/genome/variant"
+dir_vartype = f"{WORK_DIR}/genome/variant"
 file_vartype = os.path.join(dir_vartype, 'dict_vartype_to_count_novel.pkl')
 
 def dump_pickle(file_dump, dict_dump):

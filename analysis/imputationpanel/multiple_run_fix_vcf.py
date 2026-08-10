@@ -3,11 +3,12 @@ import os
 import subprocess
 
 from joblib import Parallel, delayed
+from korea10k.config import PROJECT_DIR, STORE_DIR, WORK_DIR
 
 # %%
-dir_vcf = "/BiO/Store/KOGIC/Jellyfish/KOGIC-KU10K-Genome-2019-01/Results/Korea4K.PhasedVCF.OnlyBiallelic"
-dir_fa = "/BiO/Research/Korea10KGenome/Resources/Reference/chromosome"
-script = "/BiO/Access/kyungwhan1998/genome/shapeit/Resources/Scripts/fix_vcf_missing_contigs.py"
+dir_vcf = f"{STORE_DIR}/Jellyfish/KOGIC-KU10K-Genome-2019-01/Results/Korea4K.PhasedVCF.OnlyBiallelic"
+dir_fa = f"{PROJECT_DIR}/Resources/Reference/chromosome"
+script = f"{WORK_DIR}/genome/shapeit/Resources/Scripts/fix_vcf_missing_contigs.py"
 input_vcf = os.path.join(dir_vcf, "chr{i}.recal.forPhasing.nonOverlap.phased.corrected.vcf")
 fai = os.path.join(dir_fa, "hg38.fa.fai")
 output_vcf = os.path.join(dir_vcf, "chr{i}.recal.forPhasing.nonOverlap.phased.corrected.headerFixed.vcf")

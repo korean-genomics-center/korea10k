@@ -2,10 +2,11 @@
 import glob
 import os
 import subprocess
+from korea10k.config import TOOL_DIR, WORK_DIR
 
 # %%
-plink2 = "/BiO/Share/Tool/plink2"
-indir = "/BiO/Access/kyungwhan1998/genome/admixture/Resources/Data"
+plink2 = f"{TOOL_DIR}/plink2"
+indir = f"{WORK_DIR}/genome/admixture/Resources/Data"
 
 # %%
 def run_write_snplist(plink2, bfile_in, snpfile_out):
@@ -51,7 +52,7 @@ def run_exclude(plink1, bfile_in, missnp, bfile_out):
 # %%
 indir_10K = os.path.join(indir, "ku10k")
 indir_1KGP = os.path.join(indir, "1kgp")
-outdir = "/BiO/Access/kyungwhan1998/genome/admixture/Resources/Data/ku10k_1KGP"
+outdir = f"{WORK_DIR}/genome/admixture/Resources/Data/ku10k_1KGP"
 bfile_10K = list(map(lambda x: ".".join(x.split(".")[:-1]), glob.glob(f"{indir_10K}/*.bed")))
 bfile_10K = list(filter(lambda x: "extracted" not in x, bfile_10K))[0]
 bfile_1KGP = list(map(lambda x: ".".join(x.split(".")[:-1]), glob.glob(f"{indir_1KGP}/*.bed")))
@@ -74,7 +75,7 @@ cmd2 = run_extract_intersect(plink2, bfile_1KGP, snpfile_10K+".snplist", bfile_1
 print(cmd2)
 
 # %%
-plink1 = "/BiO/Share/Tool/plink"
+plink1 = f"{TOOL_DIR}/plink"
 bfile_10K_1KGP_snp_extract = bfile_10K + ".1kgp_snp_extracted"
 bfile_1KGP_10K_snp_extract = bfile_1KGP + ".ku10k_snp_extracted"
 bfile_out = os.path.join(outdir, "Merged_ku10k_1kgp.extract_overlap_snps.Merged_chr.biallelic.Autosome.varname.geno_0.01.mind_0.1.hwe_1e6.het_3std.kinship_3rd")
@@ -114,8 +115,8 @@ cmd = run_bmerge(plink1, bfile_10K_1KGP_snp_extract_missnp_exclude, bfile_1KGP_1
 print(cmd)
 
 # %%
-plink2 = "/BiO/Share/Tool/plink2"
-indir = "/BiO/Access/kyungwhan1998/genome/admixture/Resources/Data/ku10k_1KGP"
+plink2 = f"{TOOL_DIR}/plink2"
+indir = f"{WORK_DIR}/genome/admixture/Resources/Data/ku10k_1KGP"
 bfile_in = list(map(lambda x: ".".join(x.split(".")[:-1]), glob.glob(f"{indir}/*.bed")))[0]
 bfile_out = os.path.join(indir, "Merged_ku10k_1kgp.extract_overlap_snps.flipped_nonoverlap_snps.excluded_missnps.postmerge_QC_filtered.Merged_chr.biallelic.Autosome.varname.geno_0.01.mind_0.1.hwe_1e6.het_3std.kinship_3rd")
 cmd = f"{plink2} --bfile {bfile_in} --geno 0.01 --maf 0.01 --hwe 1e-6 --make-bed --out {bfile_out}"

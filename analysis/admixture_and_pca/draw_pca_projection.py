@@ -2,11 +2,12 @@
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
+from korea10k.config import PROJECT_DIR, WORK_DIR
 
 # %%
 size = 500
-path_projection = f"/BiO/Access/kyungwhan1998/genome/admixture/Resources/Data/ku10k_1KGP/Merged_ku10k_1kgp.extract_overlap_snps.flipped_nonoverlap_snps.excluded_missnps.include_eas_samples_only.Merged_chr.biallelic.Autosome.varname.geno_0.01.mind_0.1.hwe_1e6.het_3std.kinship_3rd.LD_pruning_200kb_0.5.pruned.projection_{size}.sscore"
-path_ref = f"/BiO/Access/kyungwhan1998/genome/pca/Resources/Data/ku10k_1KGP/Koreans_random_sampled_{size}.list"
+path_projection = f"{WORK_DIR}/genome/admixture/Resources/Data/ku10k_1KGP/Merged_ku10k_1kgp.extract_overlap_snps.flipped_nonoverlap_snps.excluded_missnps.include_eas_samples_only.Merged_chr.biallelic.Autosome.varname.geno_0.01.mind_0.1.hwe_1e6.het_3std.kinship_3rd.LD_pruning_200kb_0.5.pruned.projection_{size}.sscore"
+path_ref = f"{WORK_DIR}/genome/pca/Resources/Data/ku10k_1KGP/Koreans_random_sampled_{size}.list"
 
 set_korean_ref = set(pd.read_csv(path_ref, sep="\t")["#FID"].to_list())
 
@@ -34,7 +35,7 @@ df_sample_info_10K = pd.DataFrame(dict_sample_info_10K)
 df_sample_info_10K
 
 # %%
-path_sample_info_1KGP = "/BiO/Research/Korea10KGenome/Resources/External_Genome_Data/1KGP/1KGP_30x_GRCh38/20130606_g1k_3202_samples_ped_population.txt"
+path_sample_info_1KGP = f"{PROJECT_DIR}/Resources/External_Genome_Data/1KGP/1KGP_30x_GRCh38/20130606_g1k_3202_samples_ped_population.txt"
 df_sample_info_1KGP = pd.read_csv(path_sample_info_1KGP, delim_whitespace=True)[["SampleID", "Population", "Superpopulation"]]
 
 # %%
@@ -138,7 +139,7 @@ import seaborn as sns
 
 # %%
 size = 500
-path_projection = f"/BiO/Access/kyungwhan1998/genome/admixture/Resources/Data/ku10k_1KGP/Merged_ku10k_1kgp.extract_overlap_snps.flipped_nonoverlap_snps.excluded_missnps.Koreans_only.preprocessed.prune_200kb_0.5.projection_include_eas_samples_only.sscore"
+path_projection = f"{WORK_DIR}/genome/admixture/Resources/Data/ku10k_1KGP/Merged_ku10k_1kgp.extract_overlap_snps.flipped_nonoverlap_snps.excluded_missnps.Koreans_only.preprocessed.prune_200kb_0.5.projection_include_eas_samples_only.sscore"
 
 # %%
 proj_df = pd.read_csv(path_projection, sep='\t')
@@ -162,7 +163,7 @@ df_sample_info_10K = pd.DataFrame(dict_sample_info_10K)
 df_sample_info_10K
 
 # %%
-path_sample_info_1KGP = "/BiO/Research/Korea10KGenome/Resources/External_Genome_Data/1KGP/1KGP_30x_GRCh38/20130606_g1k_3202_samples_ped_population.txt"
+path_sample_info_1KGP = f"{PROJECT_DIR}/Resources/External_Genome_Data/1KGP/1KGP_30x_GRCh38/20130606_g1k_3202_samples_ped_population.txt"
 df_sample_info_1KGP = pd.read_csv(path_sample_info_1KGP, delim_whitespace=True)[["SampleID", "Population", "Superpopulation"]]
 
 # %%

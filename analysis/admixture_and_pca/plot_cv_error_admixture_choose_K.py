@@ -1,9 +1,10 @@
 # %%
 import glob
 import os
+from korea10k.config import WORK_DIR
 
 # %%
-dir_admixture = "/BiO/Access/kyungwhan1998/genome/admixture/Resources/Data/ukbb"
+dir_admixture = f"{WORK_DIR}/genome/admixture/Resources/Data/ukbb"
 pattern_log = "log*.out"
 list_log_files = glob.glob(os.path.join(dir_admixture, pattern_log), recursive=True)
 

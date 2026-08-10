@@ -2,10 +2,11 @@
 import os
 
 import pandas as pd
+from korea10k.config import WORK_DIR
 
 K = 9
 
-workdir = "/BiO/Access/kyungwhan1998/genome/admixture/Results"
+workdir = f"{WORK_DIR}/genome/admixture/Results"
 qfile = os.path.join(workdir, f"Merged_ku10k_1kgp.extract_overlap_snps.flipped_nonoverlap_snps.excluded_missnps.500_random_Koreans_plus_1KGP.postmerge_QC_filtered.Merged_chr.biallelic.Autosome.varname.geno_0.01.mind_0.1.hwe_1e6.het_3std.kinship_3rd.prune.500kb_0.2.{K}.Q")
 indfile = os.path.join(workdir, f"Merged_ku10k_1kgp.extract_overlap_snps.flipped_nonoverlap_snps.excluded_missnps.500_random_Koreans_plus_1KGP.postmerge_QC_filtered.Merged_chr.biallelic.Autosome.varname.geno_0.01.mind_0.1.hwe_1e6.het_3std.kinship_3rd.prune.500kb_0.2.fam")
 ind2popfile = os.path.join(workdir, "ind2pop.txt")

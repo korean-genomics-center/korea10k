@@ -9,13 +9,14 @@ import pandas as pd
 import seaborn as sns
 from matplotlib.patches import FancyArrowPatch, Patch, Rectangle
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+from korea10k.config import PROJECT_DIR, STORE_DIR, WORK_DIR
 
 # %%
-path_cohort = "/BiO/Access/kyungwhan1998/genome/depthCoverage/10243sample_list.xlsx"
+path_cohort = f"{WORK_DIR}/genome/depthCoverage/10243sample_list.xlsx"
 df_cohort = pd.read_excel(path_cohort)
 
 # %% [QC]
-path_excel = "/BiO/Research/Korea10KGenome/Resources/MetaData/Sequencing/KOREA10K_DATA_TABLE.xlsx"
+path_excel = f"{PROJECT_DIR}/Resources/MetaData/Sequencing/KOREA10K_DATA_TABLE.xlsx"
 df_excel = pd.read_excel(path_excel)
 dict_rd_id_conv = dict(zip(df_excel["KU10K-ID"], df_excel["RD_ID"]))
 dict_rd_id_conv = {k: str(int(v)) for k, v in dict_rd_id_conv.items() if str(v) != "nan"}
@@ -30,7 +31,7 @@ dict_4k_id_conv.update(dict_kpgp_id_conv_filt)
 # %%
 df_cohort["SampleID"] = df_cohort["ID"].apply(lambda x: dict_4k_id_conv.get(x, x))
 
-path_vcf_4k = "/BiO/Store/KOGIC/Jellyfish/KOGIC-KU10K-Genome-2019-01/Results/JointCall.to.hg38.with.AdapterTrimmedRead.for.BWA.mem.by.GATK.HaplotypeCaller/Korea4K.4157Samples.VQSR.Filtered.Related.Rare.Diabetes.NonKorean.Inculdes.KOREFs.Filtered.AvgAB.1_0/chr14.recal.vcf"
+path_vcf_4k = f"{STORE_DIR}/Jellyfish/KOGIC-KU10K-Genome-2019-01/Results/JointCall.to.hg38.with.AdapterTrimmedRead.for.BWA.mem.by.GATK.HaplotypeCaller/Korea4K.4157Samples.VQSR.Filtered.Related.Rare.Diabetes.NonKorean.Inculdes.KOREFs.Filtered.AvgAB.1_0/chr14.recal.vcf"
 list_sample_4k = list()
 with open(path_vcf_4k, mode="r") as fr:
     for line in fr:
@@ -72,7 +73,7 @@ df_pheno.columns = ["Category", "Count"]
 # %% 
 import json
 
-path_translate_dict = "/BiO/Access/kyungwhan1998/genome/depthCoverage/convert_disease_category_kor_to_eng.json"
+path_translate_dict = f"{WORK_DIR}/genome/depthCoverage/convert_disease_category_kor_to_eng.json"
 with open(path_translate_dict, mode="rb") as fr:
     translate_dict = json.load(fr)
 df_pheno["Category_EN"] = df_pheno["Category"].map(translate_dict)

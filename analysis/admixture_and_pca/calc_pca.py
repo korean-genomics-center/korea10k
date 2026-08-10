@@ -1,9 +1,10 @@
 # %%
 import subprocess
+from korea10k.config import TOOL_DIR, WORK_DIR
 
-plink = "/BiO/Share/Tool/plink2"
-# workdir = "/BiO/Access/kyungwhan1998/genome/admixture/Resources/Data/ku10k_1KGP"
-workdir = "/BiO/Access/kyungwhan1998/genome/admixture/Resources/Data/ku10k"
+plink = f"{TOOL_DIR}/plink2"
+# workdir = f"{WORK_DIR}/genome/admixture/Resources/Data/ku10k_1KGP"
+workdir = f"{WORK_DIR}/genome/admixture/Resources/Data/ku10k"
 
 # bfile_in = f"{workdir}/Merged_ku10k_1kgp.extract_overlap_snps.flipped_nonoverlap_snps.excluded_missnps.exclude_outlier_samples.Koreans_only.postmerge_QC_filtered.Merged_chr.biallelic.Autosome.varname.geno_0.01.mind_0.1.hwe_1e6.het_3std.kinship_3rd"
 # bfile_in = f"{workdir}/Merged_ku10k_1kgp.extract_overlap_snps.flipped_nonoverlap_snps.excluded_missnps.9000Koreans+1KGPEAS_samples.postmerge_QC_filtered.Merged_chr.biallelic.Autosome.varname.geno_0.01.mind_0.1.hwe_1e6.het_3std.kinship_3rd"

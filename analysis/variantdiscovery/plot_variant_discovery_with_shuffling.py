@@ -4,6 +4,7 @@ import pickle
 
 import numpy as np
 from matplotlib import pyplot as plt
+from korea10k.config import WORK_DIR
 
 
 #%%
@@ -14,7 +15,7 @@ def load_pickle(path_pkl):
     return file_load
         
 # %%
-dir_variant = "/BiO/Access/kyungwhan1998/genome/shapeit/Resources/Data/plot"
+dir_variant = f"{WORK_DIR}/genome/shapeit/Resources/Data/plot"
 path_pkl_dict_frequency_type_to_mean_line = os.path.join(dir_variant, "dict_frequency_type_to_mean_line.pkl")
 path_pkl_dict_frequency_type_to_saturation_points = os.path.join(dir_variant, "dict_frequency_type_to_saturation_points.pkl")
 

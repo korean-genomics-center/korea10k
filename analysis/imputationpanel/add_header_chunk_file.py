@@ -1,7 +1,9 @@
+from korea10k.config import TOOL_DIR
+
 # %%
 for num in range(1, 23, 1):
-    file_chunk_coord = f"/BiO/Share/Tool/shapeit5/resources/chunks/b38/20cM/chunks_chr{num}.txt"
-    file_out = f"/BiO/Share/Tool/shapeit5/resources/chunks/b38/20cM/chunks_chr{num}.header.incl.txt"
+    file_chunk_coord = f"{TOOL_DIR}/shapeit5/resources/chunks/b38/20cM/chunks_chr{num}.txt"
+    file_out = f"{TOOL_DIR}/shapeit5/resources/chunks/b38/20cM/chunks_chr{num}.header.incl.txt"
     with open(file_chunk_coord, mode='r') as fr, open(file_out, mode="w") as fw:
         fw.write("\t".join(["chunk", "chr", "scaffold_region", "input_region"]) + "\n")
         for line in fr:
@@ -10,12 +12,12 @@ for num in range(1, 23, 1):
             fw.write("\t".join(record_rmv_chr)+"\n")
             
 # %%
-file_merged = "/BiO/Share/Tool/shapeit5/resources/chunks/b38/20cM/chunks.header.incl.txt"
+file_merged = f"{TOOL_DIR}/shapeit5/resources/chunks/b38/20cM/chunks.header.incl.txt"
 
 with open(file_merged, mode="w") as fw:
     fw.write("\t".join(["chunk", "chr", "scaffold_region", "input_region"]) + "\n")
     for num in range(1, 23, 1):
-        file_chunks = f"/BiO/Share/Tool/shapeit5/resources/chunks/b38/20cM/chunks_chr{num}.header.incl.txt"
+        file_chunks = f"{TOOL_DIR}/shapeit5/resources/chunks/b38/20cM/chunks_chr{num}.header.incl.txt"
         with open(file_chunks, mode='r') as fr:
             for line in fr:
                 if str(line).startswith("chunk"):

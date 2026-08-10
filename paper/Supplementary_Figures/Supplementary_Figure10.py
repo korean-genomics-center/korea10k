@@ -6,12 +6,13 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 from matplotlib.gridspec import GridSpec
+from korea10k.config import PROJECT_DIR, WORK_DIR
 
 # %%
-path_ori = "/BiO/Research/Korea10KGenome/Resources/MetaData/Sequencing/KOREA10K_DATA_TABLE.xlsx"
-path_ori_meta = "/BiO/Research/Korea10KGenome/Results/Plink.JointCall.to.hg38.with.AdapterTrimmedRead.for.BWA.mem.by.GATK.HaplotypeCaller.BoundaryMerged.VQSR.PASS/Plink_All/Step1_MakePlink.biallelic/chr21.biallelic.psam"
-path_new_depth = "/BiO/Access/kyungwhan1998/genome/depthCoverage/KU10K_10243_base_mapped.txt"
-path_out = "/BiO/Access/kyungwhan1998/genome/depthCoverage/Korea10K_10239_sequencing_depth.txt"
+path_ori = f"{PROJECT_DIR}/Resources/MetaData/Sequencing/KOREA10K_DATA_TABLE.xlsx"
+path_ori_meta = f"{PROJECT_DIR}/Results/Plink.JointCall.to.hg38.with.AdapterTrimmedRead.for.BWA.mem.by.GATK.HaplotypeCaller.BoundaryMerged.VQSR.PASS/Plink_All/Step1_MakePlink.biallelic/chr21.biallelic.psam"
+path_new_depth = f"{WORK_DIR}/genome/depthCoverage/KU10K_10243_base_mapped.txt"
+path_out = f"{WORK_DIR}/genome/depthCoverage/Korea10K_10239_sequencing_depth.txt"
 
 human_genome_size = 3298912062
 list_samples_exclude = ["KU10K-10433", "KU10K-10689", "KU10K-04846", "KU10K-10007"]

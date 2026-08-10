@@ -5,10 +5,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+from korea10k.config import WORK_DIR
 
 # %%
 K=7
-workdir = "/BiO/Access/kyungwhan1998/genome/admixture/Results"
+workdir = f"{WORK_DIR}/genome/admixture/Results"
 Qpop_sorted_file = os.path.join(workdir , f"admixture_plot_input_K{str(K)}.txt")
 pop_order_file = os.path.join(workdir, "pop_order.txt")
 

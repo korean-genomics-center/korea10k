@@ -6,12 +6,13 @@ import subprocess
 import numpy as np
 import pandas as pd
 import seaborn as sns
+from korea10k.config import PROJECT_DIR, TOOL_DIR, WORK_DIR
 
 # %%
-plink = "/BiO/Share/Tool/plink"
+plink = f"{TOOL_DIR}/plink"
 window_size = "200kb"
 r2 = "0.5"
-workdir = "/BiO/Access/kyungwhan1998/genome/admixture/Resources/Data/ku10k_1KGP"
+workdir = f"{WORK_DIR}/genome/admixture/Resources/Data/ku10k_1KGP"
 os.makedirs(workdir, exist_ok=True)
 k = 500
 bfile_in = os.path.join(workdir, f"Merged_ku10k_1kgp.extract_overlap_snps.flipped_nonoverlap_snps.excluded_missnps.exclude_outlier_samples.Koreans_only.postmerge_QC_filtered.Merged_chr.biallelic.Autosome.varname.geno_0.01.mind_0.1.hwe_1e6.het_3std.kinship_3rd.prune.{window_size}_{r2}")
@@ -28,7 +29,7 @@ import pandas as pd
 from matplotlib import pyplot as plt
 
 # %%
-path_clust = "/BiO/Access/kyungwhan1998/genome/admixture/Resources/Data/ku10k_1KGP/plink.cluster1"
+path_clust = f"{WORK_DIR}/genome/admixture/Resources/Data/ku10k_1KGP/plink.cluster1"
 df_clust = pd.read_csv(path_clust, sep="\t", names = ["Cluster_name", "Sample_IDs"])
 
 n_samples_per_cluster = df_clust["Sample_IDs"].apply(lambda val: len(val.split()))
@@ -63,7 +64,7 @@ samples_per_cluster
 
 
 # %%
-clust_path = "/BiO/Access/kyungwhan1998/genome/admixture/Resources/Data/ku10k_1KGP/cluster.cluster2"
+clust_path = f"{WORK_DIR}/genome/admixture/Resources/Data/ku10k_1KGP/cluster.cluster2"
 
 df_ = pd.read_csv(
     clust_path,
@@ -127,7 +128,7 @@ with open(path_central, mode="w") as fw:
         fw.write("\t".join([sample, sample]) + "\n")
         
 # %%
-path_sample_info_1KGP = "/BiO/Research/Korea10KGenome/Resources/External_Genome_Data/1KGP/1KGP_30x_GRCh38/20130606_g1k_3202_samples_ped_population.txt"
+path_sample_info_1KGP = f"{PROJECT_DIR}/Resources/External_Genome_Data/1KGP/1KGP_30x_GRCh38/20130606_g1k_3202_samples_ped_population.txt"
 df_sample_info_1KGP = pd.read_csv(path_sample_info_1KGP, delim_whitespace=True)[["SampleID", "Population", "Superpopulation"]]
 list_samples_1KGP = df_sample_info_1KGP["SampleID"].to_list()
 

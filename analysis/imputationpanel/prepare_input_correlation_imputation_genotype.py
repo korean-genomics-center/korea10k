@@ -1,12 +1,13 @@
 # %%
 import os
 import subprocess
+from korea10k.config import TOOL_DIR, WORK_DIR
 
 # %%
-workdir = "/BiO/Access/kyungwhan1998/genome/shapeit/Results/imputation"
-script = "/BiO/Access/kyungwhan1998/genome/shapeit/Resources/Scripts/split_chr_by_chunks_bcftools.py"
+workdir = f"{WORK_DIR}/genome/shapeit/Results/imputation"
+script = f"{WORK_DIR}/genome/shapeit/Resources/Scripts/split_chr_by_chunks_bcftools.py"
 input_vcf = os.path.join(workdir, "chr{i}.omniChipOnly.imputed.4K.dose.vcf.gz")
-region_file = "/BiO/Share/Tool/shapeit5/resources/chunks/b38/20cM/chunks_chr{i}.header.incl.txt"
+region_file = TOOL_DIR + "/shapeit5/resources/chunks/b38/20cM/chunks_chr{i}.header.incl.txt"
 outdir = os.path.join(workdir)
 threads = 20
 

@@ -1,9 +1,10 @@
 # %%
 import os
 import subprocess
+from korea10k.config import CONDA_ENV_DIR, WORK_DIR
 
 # %%
-tabix = "/BiO/Access/kyungwhan1998/miniconda3/envs/shapeit/bin/tabix"
+tabix = f"{CONDA_ENV_DIR}/shapeit/bin/tabix"
 
 # ------------ Utility functions ------------
 
@@ -77,8 +78,8 @@ def run(tabix,
 # ------------ Main ------------
 
 if __name__ == "__main__":
-    dir_vcf = "/BiO/Access/kyungwhan1998/genome/shapeit/Results/imputation"
-    workdir = "/BiO/Access/kyungwhan1998/genome/shapeit/Results/imputation/run"
+    dir_vcf = f"{WORK_DIR}/genome/shapeit/Results/imputation"
+    workdir = f"{WORK_DIR}/genome/shapeit/Results/imputation/run"
     os.makedirs(workdir, exist_ok=True)
     list_file_vcfs = sorted(list(filter(lambda x: str(x).endswith("10K.dose.vcf.gz"), os.listdir(dir_vcf))))
     for file_vcf in list_file_vcfs:

@@ -3,9 +3,10 @@ import os
 import subprocess
 
 from joblib import Parallel, delayed
+from korea10k.config import TOOL_DIR, WORK_DIR
 
-tool_admixture = "/BiO/Share/Tool/admixture_linux-1.3.0/admixture"
-path_input = "/BiO/Access/kyungwhan1998/genome/admixture/Resources/Data/ku10k_1KGP/Merged_ku10k_1kgp.extract_overlap_snps.flipped_nonoverlap_snps.excluded_missnps.excluded_samples.postmerge_QC_filtered.Merged_chr.biallelic.Autosome.varname.geno_0.01.mind_0.1.hwe_1e6.het_3std.kinship_3rd.LD_pruning_500kb_0.2.pruned.bed"
+tool_admixture = f"{TOOL_DIR}/admixture_linux-1.3.0/admixture"
+path_input = f"{WORK_DIR}/genome/admixture/Resources/Data/ku10k_1KGP/Merged_ku10k_1kgp.extract_overlap_snps.flipped_nonoverlap_snps.excluded_missnps.excluded_samples.postmerge_QC_filtered.Merged_chr.biallelic.Autosome.varname.geno_0.01.mind_0.1.hwe_1e6.het_3std.kinship_3rd.LD_pruning_500kb_0.2.pruned.bed"
 
 os.chdir(os.path.dirname(path_input))
 list_k = list(range(4, 15, 1))

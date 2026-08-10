@@ -2,12 +2,13 @@
 import re
 
 import pandas as pd
+from korea10k.config import WORK_DIR
 
 # %%
 # -----------------------------
 # 1. Load input HLA typing table
 # -----------------------------
-hla_path = "/BiO/Access/kyungwhan1998/genome/hla/Resources/Data/20140702_hla_diversity.txt"
+hla_path = f"{WORK_DIR}/genome/hla/Resources/Data/20140702_hla_diversity.txt"
 df = pd.read_csv(hla_path, delim_whitespace=True)
 
 # %%
@@ -72,7 +73,7 @@ hla_clean_filtered = hla_clean[mask_valid].copy()
 # 6. Save filtered table to TSV
 # -----------------------------
 hla_clean_filtered.to_csv(
-    "/BiO/Access/kyungwhan1998/genome/hla/Resources/Data/1KGP_1113samples_HLA.tsv",
+    f"{WORK_DIR}/genome/hla/Resources/Data/1KGP_1113samples_HLA.tsv",
     sep="\t",
     index=False
 )

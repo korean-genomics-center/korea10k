@@ -2,6 +2,7 @@
 import glob
 import os
 import subprocess
+from korea10k.config import PROJECT_DIR, WORK_DIR
 
 
 # %%
@@ -13,8 +14,8 @@ def create_concat_file_list(path_file_list, dir_vcf, pattern=".recalibrated_vari
             fw.write(file+"\n")
     
 # %%
-bcftools = "/BiO/Research/Korea10KGenome/Resources/Tools/bcftools-1.20/bcftools"
-dir_vcf = "/BiO/Access/kyungwhan1998/Korea10KGenome/Resources/External_Genome_Data/1KGP/1KGP_30x_GRCh38"
+bcftools = f"{PROJECT_DIR}/Resources/Tools/bcftools-1.20/bcftools"
+dir_vcf = f"{WORK_DIR}/Korea10KGenome/Resources/External_Genome_Data/1KGP/1KGP_30x_GRCh38"
 path_file_list = f"{dir_vcf}/file_vcf_list.txt"
 create_concat_file_list(path_file_list, dir_vcf)
 outfile = f"{dir_vcf}/20201028_CCDG_14151_B01_GRM_WGS_2020-08-05_merged_chr.recalibrated_variants.annotated.vcf.gz"

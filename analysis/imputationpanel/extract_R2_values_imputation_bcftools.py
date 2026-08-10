@@ -3,6 +3,7 @@ import os
 import subprocess
 
 from joblib import Parallel, delayed
+from korea10k.config import CONDA_ENV_DIR, WORK_DIR
 
 
 # %%
@@ -12,8 +13,8 @@ def extract_R2_values(workdir, bcftools, i, panel):
     subprocess.run(cmd, shell=True)
 
 # %%
-bcftools = "/BiO/Access/kyungwhan1998/miniconda3/envs/shapeit/bin/bcftools"
-workdir = "/BiO/Access/kyungwhan1998/genome/shapeit/Results/imputation"
+bcftools = f"{CONDA_ENV_DIR}/shapeit/bin/bcftools"
+workdir = f"{WORK_DIR}/genome/shapeit/Results/imputation"
 panel = "1K"
 with Parallel(n_jobs = 23) as parallel:
     parallel(delayed(extract_R2_values)(workdir, bcftools, i, panel) for i in range(1, 23, 1))

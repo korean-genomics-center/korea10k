@@ -1,9 +1,10 @@
 # %%
 import os
 import subprocess
+from korea10k.config import STORE_DIR, TOOL_DIR, WORK_DIR
 
 # %%
-minimac4 = "/BiO/Share/Tool/minimac4-4.1.6-Linux-x86_64/bin/minimac4"
+minimac4 = f"{TOOL_DIR}/minimac4-4.1.6-Linux-x86_64/bin/minimac4"
 # ------------ Utility functions ------------
 
 def get_context_for_qsub_submission(cmd, jobname, stderr_path, stdout_path, nthreads, hostname=[], hold_jids=[]):
@@ -77,14 +78,14 @@ def run(minimac4,
 # ------------ Main ------------
 
 if __name__ == "__main__":
-    dir_vcf = "/BiO/Access/kyungwhan1998/genome/shapeit/Resources/Data/reference_panel/4K"
-    workdir = "/BiO/Access/kyungwhan1998/genome/shapeit/Resources/Data/reference_panel/4K/run"
+    dir_vcf = f"{WORK_DIR}/genome/shapeit/Resources/Data/reference_panel/4K"
+    workdir = f"{WORK_DIR}/genome/shapeit/Resources/Data/reference_panel/4K/run"
     os.makedirs(workdir, exist_ok=True)
     list_file_vcfs = sorted(list(filter(lambda x: str(x).endswith(".bgz"), os.listdir(dir_vcf))))
     for file_vcf in list_file_vcfs:
         chrnum = file_vcf.split(".")[0]
-        reference_panel_bcf = f"/BiO/Store/KOGIC/Jellyfish/KOGIC-KU10K-Genome-2019-01/Results/Korea4K.PhasedVCF.OnlyBiallelic/{chrnum}.recal.forPhasing.nonOverlap.phased.corrected.headerFixed.vcf.bgz"
-        reference_panel_msav = f"/BiO/Access/kyungwhan1998/genome/shapeit/Resources/Data/reference_panel/4K/{chrnum}.recal.forPhasing.nonOverlap.phased.corrected.headerFixed.msav"
+        reference_panel_bcf = f"{STORE_DIR}/Jellyfish/KOGIC-KU10K-Genome-2019-01/Results/Korea4K.PhasedVCF.OnlyBiallelic/{chrnum}.recal.forPhasing.nonOverlap.phased.corrected.headerFixed.vcf.bgz"
+        reference_panel_msav = f"{WORK_DIR}/genome/shapeit/Resources/Data/reference_panel/4K/{chrnum}.recal.forPhasing.nonOverlap.phased.corrected.headerFixed.msav"
         jobname = f"{file_vcf}-Minimac4-make-ref"
         print(f"[INFO] Preparing job: {jobname}")
         

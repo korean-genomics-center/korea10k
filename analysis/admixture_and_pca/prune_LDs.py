@@ -2,15 +2,16 @@
 import glob
 import os
 import subprocess
+from korea10k.config import TOOL_DIR, WORK_DIR
 
 # %%
-plink2 = "/BiO/Share/Tool/plink2"
+plink2 = f"{TOOL_DIR}/plink2"
 window_size = "200kb"
 r2 = "0.5"
 # window_size = "500kb"
 # r2 = "0.2"
-# workdir = "/BiO/Access/kyungwhan1998/genome/admixture/Resources/Data/ku10k_1KGP"
-workdir = "/BiO/Access/kyungwhan1998/genome/admixture/Resources/Data/ku10k"
+# workdir = f"{WORK_DIR}/genome/admixture/Resources/Data/ku10k_1KGP"
+workdir = f"{WORK_DIR}/genome/admixture/Resources/Data/ku10k"
 os.makedirs(workdir, exist_ok=True)
 
 # %%

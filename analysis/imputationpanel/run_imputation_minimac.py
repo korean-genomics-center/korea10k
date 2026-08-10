@@ -1,8 +1,9 @@
 import os
 import subprocess
+from korea10k.config import CONDA_ENV_DIR, TOOL_DIR, WORK_DIR
 
-minimac3 = "/BiO/Share/Tool/Minimac3Executable/bin/Minimac3"
-tabix = "/BiO/Access/kyungwhan1998/miniconda3/envs/shapeit/bin/tabix"
+minimac3 = f"{TOOL_DIR}/Minimac3Executable/bin/Minimac3"
+tabix = f"{CONDA_ENV_DIR}/shapeit/bin/tabix"
 
 # ------------ Utility functions ------------
 
@@ -83,18 +84,18 @@ def run(minimac3,
     write_shell_script_and_run(path_shell, shell_script)
 
 # ------------ Main ------------
-workdir = "/BiO/Access/kyungwhan1998/genome/shapeit/Results/imputation/run"
+workdir = f"{WORK_DIR}/genome/shapeit/Results/imputation/run"
 if __name__ == "__main__":
     for i in range(1, 23, 1):
-        # reference_panel_m3vcf = f"/BiO/Access/kyungwhan1998/genome/shapeit/Resources/Data/reference_panel/1K/chr{i}.imputed.chrname_fixed.m3vcf.gz"
-        # reference_panel_m3vcf = f"/BiO/Access/kyungwhan1998/genome/shapeit/Resources/Data/reference_panel/4K/chr{i}.recal.forPhasing.nonOverlap.phased.corrected.headerFixed.chrname_fixed.m3vcf.gz"
-        reference_panel_m3vcf = f"/BiO/Access/kyungwhan1998/genome/shapeit/Resources/Data/reference_panel/10K/chr{i}.phased.concat.m3vcf.gz"
+        # reference_panel_m3vcf = f"{WORK_DIR}/genome/shapeit/Resources/Data/reference_panel/1K/chr{i}.imputed.chrname_fixed.m3vcf.gz"
+        # reference_panel_m3vcf = f"{WORK_DIR}/genome/shapeit/Resources/Data/reference_panel/4K/chr{i}.recal.forPhasing.nonOverlap.phased.corrected.headerFixed.chrname_fixed.m3vcf.gz"
+        reference_panel_m3vcf = f"{WORK_DIR}/genome/shapeit/Resources/Data/reference_panel/10K/chr{i}.phased.concat.m3vcf.gz"
         
-        target_vcf = f"/BiO/Access/kyungwhan1998/genome/shapeit/Resources/Data/grf_vcf/VCF_ChipOnly_MatchedOnly/chr{i}.omniChipOnly.biallelic.vcf.gz"
+        target_vcf = f"{WORK_DIR}/genome/shapeit/Resources/Data/grf_vcf/VCF_ChipOnly_MatchedOnly/chr{i}.omniChipOnly.biallelic.vcf.gz"
 
-        # imputed_vcf = f"/BiO/Access/kyungwhan1998/genome/shapeit/Results/imputation/chr{i}.omniChipOnly.imputed.1K"
-        # imputed_vcf = f"/BiO/Access/kyungwhan1998/genome/shapeit/Results/imputation/chr{i}.omniChipOnly.imputed.4K"
-        imputed_vcf = f"/BiO/Access/kyungwhan1998/genome/shapeit/Results/imputation/chr{i}.omniChipOnly.imputed.10K"
+        # imputed_vcf = f"{WORK_DIR}/genome/shapeit/Results/imputation/chr{i}.omniChipOnly.imputed.1K"
+        # imputed_vcf = f"{WORK_DIR}/genome/shapeit/Results/imputation/chr{i}.omniChipOnly.imputed.4K"
+        imputed_vcf = f"{WORK_DIR}/genome/shapeit/Results/imputation/chr{i}.omniChipOnly.imputed.10K"
         
         jobname = f"{os.path.basename(imputed_vcf)}-minimac3-IMPUTE"
         print(f"[INFO] Preparing job: {jobname}")

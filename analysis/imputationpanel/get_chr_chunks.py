@@ -2,6 +2,7 @@
 import os
 
 from BioParser import fileparser
+from korea10k.config import WORK_DIR
 
 
 # %%
@@ -40,8 +41,8 @@ def write_chunk_coordinates(file_chunk, dict_contig_len, chunk_interval, chunk_o
                 chunk_id += 1
                 
 # %%
-file_vcf = "/BiO/Access/kyungwhan1998/genome/shapeit/chr22.biallelic.vcf.gz"
-file_chunk = "/BiO/Access/kyungwhan1998/genome/shapeit/chunks.coordinates.txt"
+file_vcf = f"{WORK_DIR}/genome/shapeit/chr22.biallelic.vcf.gz"
+file_chunk = f"{WORK_DIR}/genome/shapeit/chunks.coordinates.txt"
 Mbp = 1000000
 chunk_interval = (6*Mbp)
 chunk_overlap = (2*Mbp)

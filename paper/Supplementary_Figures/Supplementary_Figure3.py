@@ -2,9 +2,10 @@
 import glob
 import math
 import os
+from korea10k.config import WORK_DIR
 
 # %%
-dir_admixture = "/BiO/Access/kyungwhan1998/genome/admixture/Results"
+dir_admixture = f"{WORK_DIR}/genome/admixture/Results"
 pattern_log = "log*.out"
 list_log_files = glob.glob(os.path.join(dir_admixture, pattern_log), recursive=True)
 

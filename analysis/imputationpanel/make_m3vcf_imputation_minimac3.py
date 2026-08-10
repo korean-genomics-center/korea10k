@@ -1,10 +1,11 @@
 # %%
 import os
 import subprocess
+from korea10k.config import TOOL_DIR, WORK_DIR
 
 
 # %%
-minimac3 = "/BiO/Share/Tool/Minimac3Executable/bin/Minimac3"
+minimac3 = f"{TOOL_DIR}/Minimac3Executable/bin/Minimac3"
 # ------------ Utility functions ------------
 
 def get_context_for_qsub_submission(cmd, jobname, stderr_path, stdout_path, nthreads, hostname=[], hold_jids=[]):
@@ -80,18 +81,18 @@ def run(minimac3,
 # ------------ Main ------------
 
 if __name__ == "__main__":
-    dir_vcf = "/BiO/Access/kyungwhan1998/genome/shapeit/Resources/Data/reference_panel/10K"
-    workdir = "/BiO/Access/kyungwhan1998/genome/shapeit/Resources/Data/reference_panel/10K/run"
+    dir_vcf = f"{WORK_DIR}/genome/shapeit/Resources/Data/reference_panel/10K"
+    workdir = f"{WORK_DIR}/genome/shapeit/Resources/Data/reference_panel/10K/run"
     os.makedirs(workdir, exist_ok=True)
     list_file_vcfs = sorted(list(filter(lambda x: str(x).endswith(".gz"), os.listdir(dir_vcf))))
     for file_vcf in list_file_vcfs:
         chrnum = file_vcf.split(".")[0]
-        reference_panel_vcf = f"/BiO/Access/kyungwhan1998/genome/shapeit/Resources/Data/reference_panel/10K/{chrnum}.phased.concat.vcf.gz"
-        reference_panel_m3vcf = f"/BiO/Access/kyungwhan1998/genome/shapeit/Resources/Data/reference_panel/10K/{chrnum}.phased.concat"
-        # reference_panel_vcf = f"/BiO/Access/kyungwhan1998/genome/shapeit/Resources/Data/reference_panel/4K/{chrnum}.recal.forPhasing.nonOverlap.phased.corrected.headerFixed.chrname_fixed.vcf.bgz"
-        # reference_panel_m3vcf = f"/BiO/Access/kyungwhan1998/genome/shapeit/Resources/Data/reference_panel/4K/{chrnum}.recal.forPhasing.nonOverlap.phased.corrected.headerFixed.chrname_fixed"
-        # reference_panel_vcf = f"/BiO/Access/kyungwhan1998/genome/shapeit/Resources/Data/reference_panel/1K/{chrnum}.imputed.chrname_fixed.vcf.gz"
-        # reference_panel_m3vcf = f"/BiO/Access/kyungwhan1998/genome/shapeit/Resources/Data/reference_panel/1K/{chrnum}.imputed.chrname_fixed"
+        reference_panel_vcf = f"{WORK_DIR}/genome/shapeit/Resources/Data/reference_panel/10K/{chrnum}.phased.concat.vcf.gz"
+        reference_panel_m3vcf = f"{WORK_DIR}/genome/shapeit/Resources/Data/reference_panel/10K/{chrnum}.phased.concat"
+        # reference_panel_vcf = f"{WORK_DIR}/genome/shapeit/Resources/Data/reference_panel/4K/{chrnum}.recal.forPhasing.nonOverlap.phased.corrected.headerFixed.chrname_fixed.vcf.bgz"
+        # reference_panel_m3vcf = f"{WORK_DIR}/genome/shapeit/Resources/Data/reference_panel/4K/{chrnum}.recal.forPhasing.nonOverlap.phased.corrected.headerFixed.chrname_fixed"
+        # reference_panel_vcf = f"{WORK_DIR}/genome/shapeit/Resources/Data/reference_panel/1K/{chrnum}.imputed.chrname_fixed.vcf.gz"
+        # reference_panel_m3vcf = f"{WORK_DIR}/genome/shapeit/Resources/Data/reference_panel/1K/{chrnum}.imputed.chrname_fixed"
         jobname = f"{file_vcf}-Minimac3-make-m3vcf"
         print(f"[INFO] Preparing job: {jobname}")
         

@@ -1,14 +1,15 @@
 # %%
 import os
 import subprocess
+from korea10k.config import TOOL_DIR, WORK_DIR
 
 # %%
 chrnum = 22
-phase_common = "/BiO/Share/Tool/shapeit5/static_bins/phase_common_static"
-input_vcf = f"/BiO/Access/kyungwhan1998/genome/shapeit/chr{chrnum}.biallelic.vcf.gz"
+phase_common = f"{TOOL_DIR}/shapeit5/static_bins/phase_common_static"
+input_vcf = f"{WORK_DIR}/genome/shapeit/chr{chrnum}.biallelic.vcf.gz"
 maf = 0.001
-gmap = f"/BiO/Access/kyungwhan1998/genome/shapeit/maps/b38/chr{chrnum}.b38.gmap.gz"
-output_vcf = f"/BiO/Access/kyungwhan1998/genome/shapeit/chr{chrnum}.biallelic.scaffold.bcf"
+gmap = f"{WORK_DIR}/genome/shapeit/maps/b38/chr{chrnum}.b38.gmap.gz"
+output_vcf = f"{WORK_DIR}/genome/shapeit/chr{chrnum}.biallelic.scaffold.bcf"
 output_format = "bcf"
 num_threads = 40
 

@@ -1,5 +1,6 @@
 #%%
 import gzip
+from korea10k.config import WORK_DIR
 
 
 def get_sample_names(vcf_path):
@@ -10,8 +11,8 @@ def get_sample_names(vcf_path):
                 cols = line.strip().split('\t')
                 return cols[9:]  # Samples start from 10th column
 
-vcf_path = "/BiO/Access/kyungwhan1998/genome/shapeit/Resources/Data/grf_vcf/VCF_ChipOnly_MatchedOnly/chr21.omniChipOnly.vcf"
-sample_path = "/BiO/Access/kyungwhan1998/genome/shapeit/Resources/Data/grf_vcf/VCF_ChipOnly_MatchedOnly/samples.list"
+vcf_path = f"{WORK_DIR}/genome/shapeit/Resources/Data/grf_vcf/VCF_ChipOnly_MatchedOnly/chr21.omniChipOnly.vcf"
+sample_path = f"{WORK_DIR}/genome/shapeit/Resources/Data/grf_vcf/VCF_ChipOnly_MatchedOnly/samples.list"
 
 samples = get_sample_names(vcf_path)
 

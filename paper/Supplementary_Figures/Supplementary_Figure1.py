@@ -2,14 +2,15 @@
 import os
 
 import pandas as pd
+from korea10k.config import PROJECT_DIR, WORK_DIR
 
 # %%
-path_ori = "/BiO/Research/Korea10KGenome/Resources/MetaData/Sequencing/KOREA10K_DATA_TABLE.xlsx"
-path_add = "/BiO/Research/Korea10KGenome/Resources/Experiment_Sheets/T7_Additional_Sequencing_Experiment_Metadata.txt"
-path_ori_meta = "/BiO/Research/Korea10KGenome/Results/Plink.JointCall.to.hg38.with.AdapterTrimmedRead.for.BWA.mem.by.GATK.HaplotypeCaller.BoundaryMerged.VQSR.PASS/Plink_All/Step1_MakePlink.biallelic/chr21.biallelic.psam"
-# path_ori_meta = "/BiO/Access/kyungwhan1998/genome/admixture/Resources/Data/ku10k_1KGP/Merged_ku10k_1kgp.extract_overlap_snps.flipped_nonoverlap_snps.excluded_missnps.9000Koreans+1KGPEAS_samples.Merged_chr.biallelic.Autosome.varname.geno_0.01.mind_0.1.hwe_1e6.het_3std.kinship_3rd.fam"
-path_new_depth = "/BiO/Access/kyungwhan1998/genome/depthCoverage/KU10K_10243_base_mapped.txt"
-path_out = "/BiO/Access/kyungwhan1998/genome/depthCoverage/Korea10K_10239_sequencing_depth.txt"
+path_ori = f"{PROJECT_DIR}/Resources/MetaData/Sequencing/KOREA10K_DATA_TABLE.xlsx"
+path_add = f"{PROJECT_DIR}/Resources/Experiment_Sheets/T7_Additional_Sequencing_Experiment_Metadata.txt"
+path_ori_meta = f"{PROJECT_DIR}/Results/Plink.JointCall.to.hg38.with.AdapterTrimmedRead.for.BWA.mem.by.GATK.HaplotypeCaller.BoundaryMerged.VQSR.PASS/Plink_All/Step1_MakePlink.biallelic/chr21.biallelic.psam"
+# path_ori_meta = f"{WORK_DIR}/genome/admixture/Resources/Data/ku10k_1KGP/Merged_ku10k_1kgp.extract_overlap_snps.flipped_nonoverlap_snps.excluded_missnps.9000Koreans+1KGPEAS_samples.Merged_chr.biallelic.Autosome.varname.geno_0.01.mind_0.1.hwe_1e6.het_3std.kinship_3rd.fam"
+path_new_depth = f"{WORK_DIR}/genome/depthCoverage/KU10K_10243_base_mapped.txt"
+path_out = f"{WORK_DIR}/genome/depthCoverage/Korea10K_10239_sequencing_depth.txt"
 
 human_genome_size = 3298912062
 list_samples_exclude = ["KU10K-10433", "KU10K-10689", "KU10K-04846", "KU10K-10007"]

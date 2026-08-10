@@ -34,17 +34,18 @@ import pandas as pd
 import matplotlib as mpl
 from matplotlib import pyplot as plt
 from matplotlib.patches import Patch
+from korea10k.config import PROJECT_DIR
 
-dir_chip_overlap = "/BiO/Research/Korea10KGenome/Analysis/Revision/Draw_Figure/Data/Chip_Overlap"
+dir_chip_overlap = f"{PROJECT_DIR}/Analysis/Revision/Draw_Figure/Data/Chip_Overlap"
 dir_figure_source = os.path.join(dir_chip_overlap, "Figure_Source")
-dir_figure_out = "/BiO/Research/Korea10KGenome/Analysis/Revision/Draw_Figure/Figures"
+dir_figure_out = f"{PROJECT_DIR}/Analysis/Revision/Draw_Figure/Figures"
 os.makedirs(dir_figure_out, exist_ok=True)
 
 path_class = os.path.join(dir_figure_source, "AF_Class_Count.tsv")
 path_cumul = os.path.join(dir_figure_source, "AF_Cumulative.tsv")
 path_summary_chip = os.path.join(dir_chip_overlap, "Summary.CpG_disappeared.AC1.ChipOverlap.tsv")
 path_summary_clock = os.path.join(dir_chip_overlap, "Summary.CpG_disappeared.AC1.AgeClockOverlap.tsv")
-path_genotype_beta = ("/BiO/Research/Korea10KGenome/Analysis/Revision/Draw_Figure/Data/"
+path_genotype_beta = (f"{PROJECT_DIR}/Analysis/Revision/Draw_Figure/Data/"
                       "Methylation_Change/per_cpg_beta_by_genotype.tsv")
 
 path_out_png = os.path.join(dir_figure_out, "Figure.Chip_Overlap.CpG_disappeared.Common_First.png")

@@ -10,6 +10,7 @@ import pandas as pd
 import seaborn as sns
 from matplotlib.ticker import FuncFormatter
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+from korea10k.config import PROJECT_DIR, WORK_DIR
 
 
 # -------------------- Helper --------------------
@@ -93,7 +94,7 @@ def heighten_axis(ax, factor=1.15, anchor="bottom"):
 sns.despine(left=False, bottom=False)
 
 # -------------------- Panel A: Variant count --------------------
-dir_variant = "/BiO/Access/kyungwhan1998/genome/variant/Data"
+dir_variant = f"{WORK_DIR}/genome/variant/Data"
 count_freq_reported = load_pickle(os.path.join(dir_variant, "count_freq_reported.pkl"))
 count_freq_novel = load_pickle(os.path.join(dir_variant, "count_freq_novel.pkl"))
 count_freq_all = load_pickle(os.path.join(dir_variant, "count_freq_all.pkl"))
@@ -137,7 +138,7 @@ for tick in axA.xaxis.get_major_ticks():
     tick.label1.set_zorder(10)
     
 # -------------------- Panel B --------------------
-dir_variant_plot = "/BiO/Access/kyungwhan1998/genome/shapeit/Resources/Data/plot"
+dir_variant_plot = f"{WORK_DIR}/genome/shapeit/Resources/Data/plot"
 dict_frequency_type_to_mean_line = load_pickle(os.path.join(dir_variant_plot, "dict_frequency_type_to_mean_line.pkl"))
 dict_frequency_type_to_saturation_points = load_pickle(os.path.join(dir_variant_plot, "dict_frequency_type_to_saturation_points.pkl"))
 
@@ -190,7 +191,7 @@ axB.text(-0.18, 1.0,"B", transform=axB.transAxes, fontsize=plt.rcParams["font.si
 
 
 # -------------------- Panel D --------------------
-workdir = "/BiO/Access/kyungwhan1998/genome/shapeit/Results/imputation"
+workdir = f"{WORK_DIR}/genome/shapeit/Results/imputation"
 R2_template = os.path.join(workdir, "corr_results/chr{i}.dose.{panel}.concat.corr.maf_10K_cat_added.txt.gz")
 def calc_squared_with_minus(val): return (1 if val >= 0 else -1) * val**2
 
@@ -320,7 +321,7 @@ for label, (start, end) in cat_ranges.items():
 
 plt.tight_layout()
 
-dir_figure = "/BiO/Research/Korea10KGenome/Analysis/Revision/Draw_Figure/Figures"
+dir_figure = f"{PROJECT_DIR}/Analysis/Revision/Draw_Figure/Figures"
 os.makedirs(dir_figure, exist_ok=True)
 fig.savefig(os.path.join(dir_figure, "Figure1.png"), dpi=300, bbox_inches="tight")
 fig.savefig(os.path.join(dir_figure, "Figure1.pdf"), bbox_inches="tight")

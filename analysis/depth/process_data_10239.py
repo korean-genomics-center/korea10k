@@ -2,9 +2,10 @@
 from collections import Counter
 
 import pandas as pd
+from korea10k.config import WORK_DIR
 
 # %%# %%
-df = pd.read_excel("/BiO/Access/kyungwhan1998/genome/depthCoverage/10243sample_list.xlsx")
+df = pd.read_excel(f"{WORK_DIR}/genome/depthCoverage/10243sample_list.xlsx")
 dict_id_cohort = dict(zip(df["ID"], df["모집군"]))
 Counter(dict_id_cohort.values())
 

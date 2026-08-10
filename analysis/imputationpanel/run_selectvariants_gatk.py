@@ -1,7 +1,8 @@
 import os
 import subprocess
+from korea10k.config import PROJECT_DIR, WORK_DIR
 
-gatk = "/BiO/Research/Korea10KGenome/Resources/Tools/gatk/gatk-4.6.1.0/gatk"
+gatk = f"{PROJECT_DIR}/Resources/Tools/gatk/gatk-4.6.1.0/gatk"
 
 # ------------ Utility functions ------------
 
@@ -82,10 +83,10 @@ def run(gatk,
 # ------------ Main ------------
 
 if __name__ == "__main__":
-    input_dir = "/BiO/Access/kyungwhan1998/genome/shapeit/Resources/Data/kpgp_vcf"
-    output_dir = "/BiO/Access/kyungwhan1998/genome/shapeit/Resources/Data/kpgp_vcf"
-    target_pos_dir = "/BiO/Access/kyungwhan1998/genome/shapeit/Resources/Data/chip"
-    workdir = "/BiO/Access/kyungwhan1998/genome/shapeit/Resources/Data/kpgp_vcf/run"
+    input_dir = f"{WORK_DIR}/genome/shapeit/Resources/Data/kpgp_vcf"
+    output_dir = f"{WORK_DIR}/genome/shapeit/Resources/Data/kpgp_vcf"
+    target_pos_dir = f"{WORK_DIR}/genome/shapeit/Resources/Data/chip"
+    workdir = f"{WORK_DIR}/genome/shapeit/Resources/Data/kpgp_vcf/run"
     os.makedirs(workdir, exist_ok=True)
     
     list_file_vcfs = sorted(list(filter(lambda x: str(x).endswith(".bgz"), os.listdir(input_dir))))

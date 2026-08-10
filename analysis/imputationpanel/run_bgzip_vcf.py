@@ -1,10 +1,11 @@
 # %%
 import os
 import subprocess
+from korea10k.config import CONDA_ENV_DIR, STORE_DIR, WORK_DIR
 
 # %%
-bgzip = "/BiO/Access/kyungwhan1998/miniconda3/envs/shapeit/bin/bgzip"
-tabix = "/BiO/Access/kyungwhan1998/miniconda3/envs/shapeit/bin/tabix"
+bgzip = f"{CONDA_ENV_DIR}/shapeit/bin/bgzip"
+tabix = f"{CONDA_ENV_DIR}/shapeit/bin/tabix"
 
 # ------------ Utility functions ------------
 
@@ -79,18 +80,18 @@ def run(bgzip,
 # ------------ Main ------------
 
 if __name__ == "__main__":
-    # dir_vcf = "/BiO/Access/kyungwhan1998/genome/shapeit/Resources/Data/reference_panel/4K"
-    # workdir = "/BiO/Access/kyungwhan1998/genome/shapeit/Resources/Data/reference_panel/4K/run"
-    dir_vcf = "/BiO/Access/kyungwhan1998/genome/shapeit/Resources/Data/grf_vcf/VCF_ChipOnly_MatchedOnly"
-    workdir = "/BiO/Access/kyungwhan1998/genome/shapeit/Resources/Data/grf_vcf/VCF_ChipOnly_MatchedOnly/run"
+    # dir_vcf = f"{WORK_DIR}/genome/shapeit/Resources/Data/reference_panel/4K"
+    # workdir = f"{WORK_DIR}/genome/shapeit/Resources/Data/reference_panel/4K/run"
+    dir_vcf = f"{WORK_DIR}/genome/shapeit/Resources/Data/grf_vcf/VCF_ChipOnly_MatchedOnly"
+    workdir = f"{WORK_DIR}/genome/shapeit/Resources/Data/grf_vcf/VCF_ChipOnly_MatchedOnly/run"
     os.makedirs(workdir, exist_ok=True)
     list_file_vcfs = sorted(list(filter(lambda x: str(x).endswith(".vcf"), os.listdir(dir_vcf))))
     for file_vcf in list_file_vcfs:
         chrnum = file_vcf.split(".")[0]
-        input_vcf = f"/BiO/Access/kyungwhan1998/genome/shapeit/Resources/Data/grf_vcf/VCF_ChipOnly_MatchedOnly/{chrnum}.omniChipOnly.vcf"
-        output_vcf = f"/BiO/Access/kyungwhan1998/genome/shapeit/Resources/Data/grf_vcf/VCF_ChipOnly_MatchedOnly/{chrnum}.omniChipOnly.vcf.gz"
-        # input_vcf = f"/BiO/Store/KOGIC/Jellyfish/KOGIC-KU10K-Genome-2019-01/Results/Korea4K.PhasedVCF.OnlyBiallelic/{chrnum}.recal.forPhasing.nonOverlap.phased.corrected.headerFixed.vcf"
-        # output_vcf = f"/BiO/Store/KOGIC/Jellyfish/KOGIC-KU10K-Genome-2019-01/Results/Korea4K.PhasedVCF.OnlyBiallelic/{chrnum}.recal.forPhasing.nonOverlap.phased.corrected.headerFixed.vcf.bgz"
+        input_vcf = f"{WORK_DIR}/genome/shapeit/Resources/Data/grf_vcf/VCF_ChipOnly_MatchedOnly/{chrnum}.omniChipOnly.vcf"
+        output_vcf = f"{WORK_DIR}/genome/shapeit/Resources/Data/grf_vcf/VCF_ChipOnly_MatchedOnly/{chrnum}.omniChipOnly.vcf.gz"
+        # input_vcf = f"{STORE_DIR}/Jellyfish/KOGIC-KU10K-Genome-2019-01/Results/Korea4K.PhasedVCF.OnlyBiallelic/{chrnum}.recal.forPhasing.nonOverlap.phased.corrected.headerFixed.vcf"
+        # output_vcf = f"{STORE_DIR}/Jellyfish/KOGIC-KU10K-Genome-2019-01/Results/Korea4K.PhasedVCF.OnlyBiallelic/{chrnum}.recal.forPhasing.nonOverlap.phased.corrected.headerFixed.vcf.bgz"
         jobname = f"{file_vcf}-BGZIP-VCF"
         print(f"[INFO] Preparing job: {jobname}")
         
