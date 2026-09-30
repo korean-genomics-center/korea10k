@@ -221,4 +221,5 @@ access conditions.
 
 ## License
 
-[Choose one — MIT is a common default for analysis code; see LICENSE.]
+Released under the MIT License, as the rest of this repository; see
+[LICENSE](../../LICENSE).

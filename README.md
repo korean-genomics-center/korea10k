@@ -1,5 +1,7 @@
 # korea10k
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 Korea10K: 10,239 whole genomes with multiomic and clinical health information as
 the Korean multiomics reference dataset (An et al., 2026, In submission).
 
@@ -145,10 +147,6 @@ benchmarks it against alternatives.
 | Evaluation | `calc_concord_imp_glimpse.py`, `extract_R2_values_imputation_bcftools.py`, `prepare_input_correlation_imputation_genotype.py`, `calc_correlation_imputation_genotype.py`, `multiple_run_calc_corr_imp.py`, `concat_correlation_imputation_genotype.py`, `attach_maf_info_imputation_genotype.py`, `get_allele_frequency_plink.py`, `draw_imputation_performace_plot.py` |
 | Chip sites | `parse_chip_manifest.py`, `get_samples_list_from_vcf.py` |
 
-`hofmeister2023/` is **vendored third-party material** — the published scripts
-and source data of Hofmeister et al. (2023), kept verbatim as the comparison
-baseline. It is deliberately left unmodified, including its own paths.
-
 ### `methylation_bias/` — power loss from CpG-eliminating variants
 
 A self-contained simulation study with its own
@@ -208,3 +206,10 @@ bcftools · tabix / bgzip · GATK 4
 Python dependencies are the usual scientific stack (`pandas`, `numpy`,
 `matplotlib`, `seaborn`, `scipy`, `openpyxl`); `analysis/methylation_bias/`
 pins its own set in `requirements.txt`.
+
+---
+
+## License
+
+The code in this repository is released under the [MIT License](LICENSE),
+an [OSI-approved](https://opensource.org/license/mit) open source license.
