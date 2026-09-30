@@ -1,4 +1,5 @@
 # %%
+import os
 from collections import Counter
 
 import matplotlib.gridspec as gridspec
@@ -10,6 +11,8 @@ import seaborn as sns
 from matplotlib.patches import FancyArrowPatch, Patch, Rectangle
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from korea10k.config import PROJECT_DIR, STORE_DIR, WORK_DIR
+
+from Figure1A import X_BOX_LEFT, draw_panel_a
 
 # %%
 path_cohort = f"{WORK_DIR}/genome/depthCoverage/10243sample_list.xlsx"
@@ -43,7 +46,9 @@ with open(path_vcf_4k, mode="r") as fr:
 
 # %%
 df_cohort_set_ind = df_cohort.set_index("SampleID")
-df_cohort_4k = df_cohort_set_ind.loc[list_sample_4k]
+# reindex (not .loc) so VCF samples missing from the cohort table do not abort the run;
+# df_cohort_4k is not consumed by any panel below.
+df_cohort_4k = df_cohort_set_ind.reindex(list_sample_4k)
  
 # %%
 list_samples_exclude = ["KU10K-10433", "KU10K-10689", "KU10K-04846", "KU10K-10007"]
@@ -130,19 +135,16 @@ gs = gridspec.GridSpec(2, 2, height_ratios=[1, 1.5], width_ratios=[1,1], hspace=
 # Panel A: Recruitment Flowchart (upper left)
 # ----------------------------------------------------------------------
 axA = fig.add_subplot(gs[0, 0])
-axA.set_xlim(0, 10)
-axA.set_ylim(0, 5)
 axA.axis("off")
-axA.text(-0.9, 1.05, "A", transform=axA.transAxes,
-         fontsize=plt.rcParams["font.size"]+10, fontweight='bold', va='bottom', ha='left')
+# content is drawn after tight_layout(), once axA has its final size -- see below
 
 # ----------------------------------------------------------------------
 # Panel B: Healthy vs Diagnosed Pie (upper right)
 # ----------------------------------------------------------------------
 axB = fig.add_subplot(gs[0, 1])
 wedges, texts, autotexts = axB.pie(
-    summary_df["Count"], 
-    labels=summary_df["Category_EN"], 
+    summary_df["Count"],
+    # slice labels are drawn in white and spill over Panel A; the legend below covers them
     autopct=lambda p: f"{int(round(p * summary_df['Count'].sum() / 100)):,}\n({p:.1f}%)", 
     startangle=90, 
     pctdistance=0.5, 
@@ -161,7 +163,7 @@ legend_handles = [Patch(facecolor=color, edgecolor='k', label=label)
 
 axB.legend(handles=legend_handles,bbox_to_anchor=(1.0, 0.5), loc="center left", fontsize=plt.rcParams["font.size"], frameon=False)
            
-axB.text(-0.6, 1.05, "B", transform=axB.transAxes,
+text_panel_B = axB.text(-0.6, 1.05, "B", transform=axB.transAxes,
          fontsize=plt.rcParams["font.size"]+10, fontweight='bold', va='bottom', ha='left')
 
 # ----------------------------------------------------------------------
@@ -203,12 +205,63 @@ for i, (count, pct) in enumerate(zip(summary_groups["Count"], summary_groups["Pe
 
 sns.despine(ax=ax_inset, top=True, right=True)
 
-axC.text(-0.45, 1.05, "C", transform=axC.transAxes,
+text_panel_C = axC.text(-0.45, 1.05, "C", transform=axC.transAxes,
          fontsize=plt.rcParams["font.size"]+10, fontweight='bold', va='bottom', ha='left')
 
 axC.set_ymargin(0)
 sns.despine(ax=axC, top=True, right=True)
 plt.tight_layout()
+
+# ----------------------------------------------------------------------
+# Panel A content (drawn last)
+# ----------------------------------------------------------------------
+# tight_layout sizes the left column around panel B's external legend, which leaves
+# axA at ~30% of the row width. Position it explicitly instead, against the space
+# panels B and C actually occupy once rendered:
+#   left   flush with the start of panel C's y tick labels
+#   right  MARGIN clear of everything panel B draws (its "B" letter reaches furthest)
+#   bottom MARGIN clear of everything panel C draws (its "C" letter and title)
+# The flowchart scales its font to whatever width it ends up with.
+MARGIN_PANEL_A = 0.025  # figure fraction
+
+fig.canvas.draw()
+renderer = fig.canvas.get_renderer()
+to_fig = fig.transFigure.inverted()
+
+pos_axB = axB.get_position()
+bbox_axB = axB.get_tightbbox(renderer).transformed(to_fig)
+bbox_axC = axC.get_tightbbox(renderer).transformed(to_fig)
+
+# panel C's visual left edge is its longest tick label, not its spine, so measure it
+# directly -- its tight bbox would instead report the far-flung "C" letter
+x_ticklabels = min(t.get_window_extent(renderer).x0 for t in axC.get_yticklabels())
+x_target = x_ticklabels / (fig.get_figwidth() * fig.dpi)
+
+inset = X_BOX_LEFT / 10.0  # boxes sit this fraction of the axes width in from its edge
+x_right = bbox_axB.x0 - MARGIN_PANEL_A
+x_left = (x_target - inset * x_right) / (1 - inset)
+y_bottom = bbox_axC.y1 + MARGIN_PANEL_A
+y_top = pos_axB.y1
+
+axA.set_position([x_left, y_bottom, x_right - x_left, y_top - y_bottom])
+draw_panel_a(axA)
+
+# the "A" letter is placed in figure coordinates rather than relative to axA, so it can
+# share its left edge with "C" and its top edge with "B" (all three are ha=left/va=bottom)
+x_letter = text_panel_C.get_transform().transform(text_panel_C.get_position())[0]
+y_letter = text_panel_B.get_transform().transform(text_panel_B.get_position())[1]
+x_letter, y_letter = fig.transFigure.inverted().transform((x_letter, y_letter))
+
+fig.text(x_letter, y_letter, "A",
+         fontsize=plt.rcParams["font.size"]+10, fontweight="bold", va="bottom", ha="left")
+
+# %% Save
+dir_figure = f"{PROJECT_DIR}/Analysis/Revision/Draw_Figure_ver20260929/Figures"
+os.makedirs(dir_figure, exist_ok=True)
+
+fig.savefig(os.path.join(dir_figure, "Figure1.png"), dpi=300, bbox_inches="tight")
+fig.savefig(os.path.join(dir_figure, "Figure1.pdf"), bbox_inches="tight")
+
 plt.show()
 
 # %%

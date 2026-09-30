@@ -2,6 +2,7 @@
 import os
 import re
 
+import matplotlib.colors as mcolors
 import matplotlib.gridspec as gridspec
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
@@ -10,6 +11,67 @@ import pandas as pd
 import seaborn as sns
 from matplotlib.patches import Patch
 from korea10k.config import PROJECT_DIR, WORK_DIR
+
+# -------------------------------
+# COLOUR-BLIND-SAFE PALETTES
+# -------------------------------
+# Reviewer request: figures must be red-green colour-blind friendly. Every
+# palette below was checked over ALL colour pairs (not only neighbours) as
+# OKLab dE (x100) under normal vision and under protanopia / deuteranopia /
+# tritanopia simulated with Machado et al. (2009) at severity 1.0. The previous
+# palettes fell to dE 1.4 (ADMIXTURE cyan vs pink, protanopia) and 0.7 (tab20
+# haplogroup colours, protanopia).
+
+# Panels A/B: Korea10K against grey reference samples; KOREF genomes on top.
+COLOR_KOR = "#882255"     # Paul Tol wine (was firebrick), same as Korea10K in Figure 2
+COLOR_KOREF = "#E69F00"   # Okabe-Ito orange, diamond marker (was red on firebrick)
+
+# Panel C: one colour per ancestry component, shared by K=7 and K=9 so that a
+# component keeps its colour as K grows. Hues follow the previous figure;
+# lightness and chroma were re-stepped until all 36 pairs clear dE >= 15
+# (normal), >= 11.9 (protan / deutan) and >= 8.2 (tritan).
+dict_ancestry_to_color = {
+    "AFR_West": "#A84CA0",    # purple      - GWD, MSL, YRI, ESN
+    "AFR_East": "#48A896",    # teal        - LWK, ESN, YRI (K=9 only)
+    "EAS_North": "#063F84",   # dark blue   - CHB, KOR (K=7: also JPT)
+    "JPT_KOR": "#B72106",     # red         - JPT, KOR (K=9 only)
+    "EAS_South": "#EFE646",   # yellow      - CDX, KHV
+    "EUR": "#ECA715",         # amber       - TSI, IBS, GBR, CEU
+    "FIN": "#FEBBBE",         # pink        - FIN
+    "SAS": "#9D8A04",         # olive gold  - STU, ITU, GIH, BEB
+    "AMR": "#81B5FC",         # light blue  - PEL, MXL
+}
+# ADMIXTURE cluster index -> ancestry component, read off the populations that
+# carry each cluster in admixture_plot_input_K{7,9}.txt. Re-check if ADMIXTURE
+# is re-run, because cluster numbering is arbitrary between runs.
+dict_k_to_ancestry = {
+    7: ["AFR_West", "EAS_North", "EUR", "SAS", "EAS_South", "FIN", "AMR"],
+    9: ["AFR_West", "EAS_North", "SAS", "AMR", "EAS_South", "AFR_East", "JPT_KOR", "FIN", "EUR"],
+}
+
+# Panels D-F: haplogroups / alleles reaching >= 10 % in a group get a colour in
+# order of mean frequency; the rest are light grey. Paul Tol's "muted" scheme,
+# re-stepped so the nine colours AND the light grey clear dE >= 15 (normal),
+# >= 9.9 (protan / deutan) and >= 7.2 (tritan) over all pairs.
+list_haplo_palette = ["#5DC5FD", "#CC6577", "#E2CA49", "#18762D", "#332288",
+                      "#A13DA3", "#0F9DB1", "#9F9A1A", "#82204E"]
+COLOR_OTHER = "lightgrey"
+MIN_PROP_COLORED = 0.1
+
+
+def text_color_on(color):
+    """Black or white label text, whichever has the higher WCAG contrast on `color`."""
+    list_lin = [c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4 for c in mcolors.to_rgb(color)]
+    luminance = 0.2126 * list_lin[0] + 0.7152 * list_lin[1] + 0.0722 * list_lin[2]
+    return "black" if luminance > 0.179 else "white"
+
+
+def assign_haplo_colors(pivot_df, list_order):
+    """Palette slots, in `list_order`, for the categories that get coloured bars."""
+    list_colored = [h for h in list_order if h in pivot_df.columns and (pivot_df[h] > MIN_PROP_COLORED).any()]
+    if len(list_colored) > len(list_haplo_palette):
+        raise ValueError(f"{len(list_colored)} coloured categories exceed the {len(list_haplo_palette)}-colour palette")
+    return dict(zip(list_colored, list_haplo_palette))
 
 # %%
 plt.rcParams.update({
@@ -27,6 +89,12 @@ plt.rcParams.update({
     "xtick.direction": "out",
     "ytick.direction": "out"
 })
+
+dir_figure = f"{PROJECT_DIR}/Analysis/Revision/Draw_Figure_ver20260929/Figures"
+# supplementary tables were previously written into another user's home; keep them in this tree
+dir_table = f"{PROJECT_DIR}/Analysis/Revision/Draw_Figure_ver20260929/Data/Supplementary_Tables"
+os.makedirs(dir_figure, exist_ok=True)
+os.makedirs(dir_table, exist_ok=True)
 
 height_pca = 100
 hspaces = [28,4,28,28,28]
@@ -108,7 +176,7 @@ list_pop_10K = ["KOR"]*len(list_samples_10K)
 list_superpop_10K = ["EAS"]*len(list_samples_10K)
 dict_sample_info_10K = {"SampleID": list_samples_10K, "Population": list_pop_10K, "Superpopulation": list_superpop_10K}
 df_sample_info_10K = pd.DataFrame(dict_sample_info_10K)
-df_sample_info_1KGP = pd.read_csv(path_sample_info_1KGP, delim_whitespace=True)[["SampleID", "Population", "Superpopulation"]]
+df_sample_info_1KGP = pd.read_csv(path_sample_info_1KGP, sep=r"\s+")[["SampleID", "Population", "Superpopulation"]]
 df_sample_info = pd.concat([df_sample_info_10K, df_sample_info_1KGP], axis=0)
 
 eigenvec_sample_info_merged = pd.merge(eigenvec, df_sample_info, how="inner", on="SampleID")
@@ -226,7 +294,7 @@ sns.scatterplot(
     data=eigenvec_sample_info_merged_kor_only,
     x="PC1",
     y="PC2",
-    color="firebrick",
+    color=COLOR_KOR,
     alpha=0.8,
     s=20,
     edgecolor="black",
@@ -243,7 +311,7 @@ for pop, row in centroid_KOR.iterrows():
         pop,
         fontsize=plt.rcParams["font.size"]+8,
         fontweight="bold",
-        color="firebrick",
+        color=COLOR_KOR,
         ha="center",
         va="center"
     )
@@ -278,7 +346,7 @@ list_pop_10K = ["KOR"]*len(list_samples_10K)
 list_superpop_10K = ["EAS"]*len(list_samples_10K)
 dict_sample_info_10K = {"SampleID": list_samples_10K, "Population": list_pop_10K, "Superpopulation": list_superpop_10K}
 df_sample_info_10K = pd.DataFrame(dict_sample_info_10K)
-df_sample_info_1KGP = pd.read_csv(path_sample_info_1KGP, delim_whitespace=True)[["SampleID", "Population", "Superpopulation"]]
+df_sample_info_1KGP = pd.read_csv(path_sample_info_1KGP, sep=r"\s+")[["SampleID", "Population", "Superpopulation"]]
 df_sample_info = pd.concat([df_sample_info_10K, df_sample_info_1KGP], axis=0)
 
 eigenvec_sample_info_merged = pd.merge(eigenvec, df_sample_info, how="inner", on="SampleID")
@@ -326,7 +394,7 @@ sns.scatterplot(
     data=eigenvec_sample_info_merged_kor_only,
     x="PC1",
     y="PC2",
-    color="firebrick", 
+    color=COLOR_KOR,
     alpha=0.5,
     s=20,
     edgecolor="black",
@@ -343,7 +411,7 @@ for pop, row in centroid_KOR.iterrows():
         pop,
         fontsize=plt.rcParams["font.size"]+8,
         fontweight="bold",
-        color="firebrick",
+        color=COLOR_KOR,
         ha="center",
         va="center"
     )
@@ -358,9 +426,11 @@ for highlight_row_pc1, highlight_row_pc2, highlight_label in zip(highlight_rows[
     axB.scatter(
         highlight_row_pc1,
         highlight_row_pc2,
-        color="red",
+        color=COLOR_KOREF,
+        marker="D",
         edgecolor="black",
-        s=80,
+        linewidth=1.2,
+        s=90,
         zorder=10,
         label=str(highlight_label)
     )
@@ -434,9 +504,7 @@ Qpop_sorted = pd.concat(sorted_frames).reset_index(drop=True)
 # -------------------------------
 # COLORS
 # -------------------------------
-cluster_colors = sns.color_palette([
-    "#984EA3", "#0047A0", "#FF5E00", "#EBB112", "#FFFF33", "#F781BF", "#01A4BA"
-])
+cluster_colors = [dict_ancestry_to_color[ancestry] for ancestry in dict_k_to_ancestry[K]]
 
 x = np.arange(len(Qpop_sorted))
 bottom = np.zeros(len(Qpop_sorted))
@@ -572,10 +640,7 @@ for pop in pop_order:
     sorted_frames.append(sub)
 Qpop_sorted = pd.concat(sorted_frames).reset_index(drop=True)
 
-cluster_colors = sns.color_palette([
-    "#984EA3", "#0047A0", "#EBB112", "#01A4BA", "#FFFF33",
-    "#4DAF4A", "#CD2E3A", "#F781BF", "#FF5E00"
-])
+cluster_colors = [dict_ancestry_to_color[ancestry] for ancestry in dict_k_to_ancestry[K]]
 
 x = np.arange(len(Qpop_sorted))
 bottom = np.zeros(len(Qpop_sorted))
@@ -641,10 +706,10 @@ path_Y_10K = f"{WORK_DIR}/genome/ychrom/Korea10K/haplogroups.korea10K.jointcall.
 path_Y_1KGP = f"{WORK_DIR}/genome/yhaplo/output/1000Genomes/haplogroups.1000Y.all.txt"
 
 path_plink_fam = f"{WORK_DIR}/genome/admixture/Resources/Data/ku10k_1KGP/Merged_ku10k_1kgp.extract_overlap_snps.flipped_nonoverlap_snps.excluded_missnps.excluded_outlier_plus_nonKorean_samples.postmerge_QC_filtered.preprocssed.prune_200kb_0.5.pruned.fam"
-df_Y_10K = pd.read_csv(path_Y_10K, delim_whitespace=True, header=None)
+df_Y_10K = pd.read_csv(path_Y_10K, sep=r"\s+", header=None)
 df_Y_10K.columns = ["SampleID", "Haplogroup", "Macro_haplogroup", "Simplified_haplogroup"]
 df_Y_10K_excl_Ahaplo = df_Y_10K[~df_Y_10K["Macro_haplogroup"].str.startswith("A")]
-df_Y_1KGP = pd.read_csv(path_Y_1KGP, delim_whitespace=True, header=None)
+df_Y_1KGP = pd.read_csv(path_Y_1KGP, sep=r"\s+", header=None)
 df_Y_1KGP.columns = ["SampleID", "Haplogroup", "Macro_haplogroup", "Simplified_haplogroup"]
 df_Y = pd.concat([df_Y_10K_excl_Ahaplo, df_Y_1KGP], axis=0)
 df_Y.columns = ["SampleID", "Haplogroup", "Macro_haplogroup", "Simplified_haplogroup"]
@@ -686,7 +751,7 @@ freq_df = pd.concat([pop_freq, super_freq], axis=0)
 freq_df["Proportions"] = freq_df.groupby("Group")["Count"].transform(lambda x: x / x.sum())
 
 freq_df[freq_df["Population"]=="KOR"].sort_values(by="Count", ascending=False)
-freq_df.to_excel(f"{WORK_DIR}/genome/paper/Supplementary_Table_Y.xlsx")
+freq_df.to_excel(os.path.join(dir_table, "Supplementary_Table_Y.xlsx"))
 
 haplo_order= (
     freq_df.groupby("Major_Haplogroup")["Proportions"]
@@ -701,8 +766,7 @@ group_order = ["AFR", "EUR", "CHB", "JPT", "KOR"]
 pivot_df = freq_df.pivot(index="Group", columns="Major_Haplogroup", values="Proportions").fillna(0)
 pivot_df = pivot_df.reindex([g for g in group_order if g in pivot_df.index])
 
-palette = sns.color_palette("tab20", n_colors=len(haplo_order))
-haplo_color_dict = dict(zip(haplo_order, palette))
+haplo_color_dict = assign_haplo_colors(pivot_df, haplo_order)
 
 added_labels = set()
 for idx, group in enumerate(pivot_df.index):
@@ -711,7 +775,7 @@ for idx, group in enumerate(pivot_df.index):
 
     left = 0
     for haplo, val in row_sorted.items():
-        color = haplo_color_dict.get(haplo, "lightgrey") if val > 0.1 else "lightgrey"
+        color = haplo_color_dict.get(haplo, COLOR_OTHER) if val > MIN_PROP_COLORED else COLOR_OTHER
 
         axD.barh(
             group,
@@ -723,7 +787,7 @@ for idx, group in enumerate(pivot_df.index):
             edgecolor="black"
         )
 
-        if val > 0.1:
+        if val > MIN_PROP_COLORED:
             text = f"{haplo} ({val*100:.1f}%)"
             axD.text(
                 left + val / 2,
@@ -731,7 +795,7 @@ for idx, group in enumerate(pivot_df.index):
                 text,
                 va="center",
                 ha="center",
-                color="k",
+                color=text_color_on(color),
                 fontsize=plt.rcParams["font.size"],
                 weight="bold",
             )
@@ -768,8 +832,8 @@ path_mito_10K = f"{WORK_DIR}/genome/mitochondria/Resources/Korea10K.merged_chrM.
 path_mito_1KGP = f"{WORK_DIR}/genome/mitochondria/Resources/1KGP_30X_20201028_CCDG_14151_B01_GRM_WGS_2020-08-05_chrM_filtered.recalibrated_variants.haplogrep3.txt"
 path_plink_fam = f"{WORK_DIR}/genome/admixture/Resources/Data/ku10k_1KGP/Merged_ku10k_1kgp.extract_overlap_snps.flipped_nonoverlap_snps.excluded_missnps.excluded_outlier_plus_nonKorean_samples.postmerge_QC_filtered.preprocssed.prune_200kb_0.5.pruned.fam"
 
-df_mito_10K = pd.read_csv(path_mito_10K, delim_whitespace=True)
-df_mito_1KGP = pd.read_csv(path_mito_1KGP, delim_whitespace=True)
+df_mito_10K = pd.read_csv(path_mito_10K, sep=r"\s+")
+df_mito_1KGP = pd.read_csv(path_mito_1KGP, sep=r"\s+")
 df_mito = pd.concat([df_mito_10K, df_mito_1KGP], axis=0)
 
 # Simplify haplogroups to major letter
@@ -808,7 +872,7 @@ freq_df = pd.concat([pop_freq, super_freq], axis=0)
 freq_df["Proportions"] = freq_df.groupby("Group")["Count"].transform(lambda x: x / x.sum())
 
 freq_df[freq_df["Population"]=="KOR"].sort_values(by="Count", ascending=False)
-freq_df.to_excel(f"{WORK_DIR}/genome/paper/Supplementary_Table_MT.xlsx")
+freq_df.to_excel(os.path.join(dir_table, "Supplementary_Table_MT.xlsx"))
 
 haplo_order= (
     freq_df.groupby("Major_Haplogroup")["Proportions"]
@@ -825,8 +889,7 @@ group_order = ["AFR", "EUR", "CHB", "JPT", "KOR"]
 pivot_df = freq_df.pivot(index="Group", columns="Major_Haplogroup", values="Proportions").fillna(0)
 pivot_df = pivot_df.reindex([g for g in group_order if g in pivot_df.index])
 
-palette = sns.color_palette("tab20", n_colors=len(haplo_order))
-haplo_color_dict = dict(zip(haplo_order, palette))
+haplo_color_dict = assign_haplo_colors(pivot_df, haplo_order)
 
 added_labels = set()
 for idx, group in enumerate(pivot_df.index):  # pivot_df = MT haplogroup pivot table
@@ -835,7 +898,7 @@ for idx, group in enumerate(pivot_df.index):  # pivot_df = MT haplogroup pivot t
 
     left = 0
     for haplo, val in row_sorted.items():
-        color = haplo_color_dict.get(haplo, "lightgrey") if val > 0.1 else "lightgrey"
+        color = haplo_color_dict.get(haplo, COLOR_OTHER) if val > MIN_PROP_COLORED else COLOR_OTHER
 
         axE.barh(
             group,
@@ -847,10 +910,10 @@ for idx, group in enumerate(pivot_df.index):  # pivot_df = MT haplogroup pivot t
             edgecolor="black"
         )
 
-        if val > 0.1:
+        if val > MIN_PROP_COLORED:
             text = f"{haplo} ({val*100:.1f}%)"
             axE.text(left + val / 2, idx, text, va="center", ha="center",
-                     color="k", fontsize=plt.rcParams["font.size"], weight="bold")
+                     color=text_color_on(color), fontsize=plt.rcParams["font.size"], weight="bold")
         left += val
 
 axE.set_xlim(0, 1)
@@ -907,7 +970,7 @@ freq_df = pd.concat([pop_freq, super_freq], axis=0)
 freq_df['Proportions'] = freq_df.groupby('Group')['Count'].transform(lambda x: x / x.sum())
 
 freq_df[freq_df["Population"]=="KOR"].sort_values(by="Count", ascending=False)
-freq_df.to_excel(f"{WORK_DIR}/genome/paper/Supplementary_Table_HLA_A.xlsx")
+freq_df.to_excel(os.path.join(dir_table, "Supplementary_Table_HLA_A.xlsx"))
 
 allele_order= (
     freq_df.groupby("Allele")["Proportions"]
@@ -927,8 +990,7 @@ pivot_df = freq_df.pivot(index='Group', columns='Allele', values='Proportions').
 pivot_df = pivot_df.reindex([g for g in group_order if g in pivot_df.index])
 
 # Color palette
-palette = sns.color_palette("tab20", n_colors=len(allele_order))
-allele_color_dict = dict(zip(allele_order, palette))
+allele_color_dict = assign_haplo_colors(pivot_df, allele_order)
 
 added_labels = set()
 
@@ -938,11 +1000,11 @@ for idx, group in enumerate(pivot_df.index):
 
     left = 0
     for allele, val in row_sorted.items():
-        # Only color bars with proportions > 0.05
-        color = allele_color_dict.get(allele, 'lightgrey') if val > 0.1 else 'lightgrey'
+        # Only color bars with proportions > MIN_PROP_COLORED
+        color = allele_color_dict.get(allele, COLOR_OTHER) if val > MIN_PROP_COLORED else COLOR_OTHER
 
         # Add label only once for legend if colored
-        label = allele if (allele not in added_labels and val > 0.1) else None
+        label = allele if (allele not in added_labels and val > MIN_PROP_COLORED) else None
         if label:
             added_labels.add(allele)
 
@@ -958,14 +1020,14 @@ for idx, group in enumerate(pivot_df.index):
         )
 
         # Annotate only colored bars
-        if val > 0.1:
+        if val > MIN_PROP_COLORED:
             axF.text(
                 left + val / 2,
                 idx,
                 f"{val * 100:.1f}%",
                 va='center',
                 ha='center',
-                color='k',
+                color=text_color_on(color),
                 fontsize=plt.rcParams['font.size'],
                 weight='bold',
             )
@@ -1010,3 +1072,9 @@ axF.text(
     va="top",
     ha="left"
 )
+
+# %% Save
+fig.savefig(os.path.join(dir_figure, "Figure3.png"), dpi=300, bbox_inches="tight")
+fig.savefig(os.path.join(dir_figure, "Figure3.pdf"), bbox_inches="tight")
+
+plt.show()

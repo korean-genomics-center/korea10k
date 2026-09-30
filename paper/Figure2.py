@@ -2,7 +2,9 @@
 import os
 import pickle
 
+import matplotlib.colors as mcolors
 import matplotlib.gridspec as gridspec
+import matplotlib.patheffects as path_effects
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 import numpy as np
@@ -17,6 +19,34 @@ from korea10k.config import PROJECT_DIR, WORK_DIR
 def load_pickle(path_pkl):
     with open(path_pkl, "rb") as f:
         return pickle.load(f)
+
+
+def text_color_on(color):
+    """Black or white label text, whichever has the higher WCAG contrast on `color`."""
+    list_lin = [c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4 for c in mcolors.to_rgb(color)]
+    luminance = 0.2126 * list_lin[0] + 0.7152 * list_lin[1] + 0.0722 * list_lin[2]
+    return "black" if luminance > 0.179 else "white"
+
+
+# -------------------- Colour-blind-safe palette --------------------
+# Reviewer request: figures must be red-green colour-blind friendly. Colours are
+# Okabe-Ito / Paul Tol hues, checked pairwise as OKLab dE (x100) under normal
+# vision and under protanopia / deuteranopia / tritanopia simulated with
+# Machado et al. (2009) at severity 1.0. Every pair within a panel clears
+# dE >= 15 (normal) and >= 10 (protan/deutan); the old red/green pairs measured
+# 3.0 (Ultra-Rare vs Rare, panel B) under deuteranopia.
+COLOR_NOVEL = "#882255"     # Paul Tol wine (was firebrick); dE >= 35 vs dbSNP grey
+COLOR_DBSNP = "#BBBBBB"     # light grey (was mid grey), so black labels read on it
+# White labels on a thin novel segment spill onto the light grey; a halo in the
+# novel colour keeps them legible there.
+HALO_NOVEL = [path_effects.withStroke(linewidth=3, foreground=COLOR_NOVEL)]
+
+# Panel C/D: one colour AND one marker per reference panel, so the panels stay
+# distinguishable without colour. 10K shares the novel wine, and the oldest
+# panel (1K) is the grey baseline. Panel D reuses the colour of the panel that
+# 10K is compared against. Worst pair: dE 15.0 (protanopia, 4K vs 1K).
+dict_panel_color = {"10K": "#882255", "4K": "#E69F00", "1K": "#999999"}
+dict_panel_marker = {"10K": "o", "4K": "s", "1K": "^"}
 
 # -------------------- Plotting settings --------------------
 plt.rcParams.update({
@@ -105,14 +135,21 @@ bottom = np.zeros(len(list_xticks))
 values_novel = np.array([count_freq_novel[x] for x in list_xticks])
 values_reported = np.array([count_freq_reported[x] for x in list_xticks])
 
-axA.bar(list_xticks, values_novel, bottom=bottom, color="firebrick", label="Novel", edgecolor='k', linewidth=1.5, width=0.9, zorder=2)
+axA.bar(list_xticks, values_novel, bottom=bottom, color=COLOR_NOVEL, label="Novel", edgecolor='k', linewidth=1.5, width=0.9, zorder=2)
 bottom += values_novel
-axA.bar(list_xticks, values_reported, bottom=bottom, color="gray", label="dbSNP", edgecolor='k', linewidth=1.5, width=0.9, zorder=2)
+axA.bar(list_xticks, values_reported, bottom=bottom, color=COLOR_DBSNP, label="dbSNP", edgecolor='k', linewidth=1.5, width=0.9, zorder=2)
 
 for i, freq in enumerate(list_xticks):
     total = count_freq_all[freq]
-    axA.annotate(f"{values_novel[i]/total*100:.2f}", (i, (values_novel[i]/2) if values_novel[i]/total > 0.04 else 0.05e7), color='white', ha="center", va="center", weight="bold", fontsize=14)
-    axA.annotate(f"{values_reported[i]/total*100:.2f}", (i, values_novel[i]+ values_reported[i]/2 + (0 if freq != "Common" else 0.05e7)), color='white', ha="center", va="center", weight="bold", fontsize=12)
+    # A novel share too thin to hold its label is written just above the novel
+    # segment, on the grey dbSNP fill, so it takes that fill's text colour.
+    is_inside_novel = values_novel[i]/total > 0.04
+    axA.annotate(f"{values_novel[i]/total*100:.2f}",
+                 (i, values_novel[i]/2 if is_inside_novel else values_novel[i] + 0.05e7),
+                 color=text_color_on(COLOR_NOVEL if is_inside_novel else COLOR_DBSNP),
+                 path_effects=HALO_NOVEL if is_inside_novel else None,
+                 ha="center", va="center", weight="bold", fontsize=14)
+    axA.annotate(f"{values_reported[i]/total*100:.2f}", (i, values_novel[i]+ values_reported[i]/2 + (0 if freq != "Common" else 0.05e7)), color=text_color_on(COLOR_DBSNP), ha="center", va="center", weight="bold", fontsize=12)
     axA.annotate(f"{total/1e6:.1f}M", (i, total + 0.01*max(count_freq_all.values())), ha="center", va="bottom", weight="bold", fontsize=14)
 
 axA.set_xticklabels([display_label_map[x] for x in list_xticks],
@@ -126,10 +163,13 @@ axA.legend(frameon=False, loc="center right", fontsize=plt.rcParams["font.size"]
 total_novel = sum(count_freq_novel.values())
 total_reported = sum(count_freq_reported.values())
 ax_pie = inset_axes(axA, width="50%", height="50%", loc='upper center')
-ax_pie.pie([total_novel, total_reported], colors=["firebrick", "gray"], autopct="%1.1f%%",
+_, _, list_pie_text = ax_pie.pie([total_novel, total_reported], colors=[COLOR_NOVEL, COLOR_DBSNP], autopct="%1.1f%%",
            startangle=90, counterclock=False,
            wedgeprops={"linewidth":2, "edgecolor":"k"},
-           textprops={"weight":"bold", "fontsize": plt.rcParams["font.size"]-2, "color":"white"})
+           textprops={"weight":"bold", "fontsize": plt.rcParams["font.size"]-2})
+for pie_text, color_wedge in zip(list_pie_text, [COLOR_NOVEL, COLOR_DBSNP]):
+    pie_text.set_color(text_color_on(color_wedge))
+list_pie_text[0].set_path_effects(HALO_NOVEL)
 ax_pie.set_aspect("equal")
 ax_pie.text(0.5, 0.92, f"{(total_novel+total_reported)/1e6:.1f}M", ha="center", va="bottom", weight="bold", fontsize=plt.rcParams["font.size"], transform=ax_pie.transAxes)
 axA.text(-0.18, 1.0, "A", transform=axA.transAxes, fontsize=plt.rcParams["font.size"]+5, fontweight='bold')
@@ -142,15 +182,20 @@ dir_variant_plot = f"{WORK_DIR}/genome/shapeit/Resources/Data/plot"
 dict_frequency_type_to_mean_line = load_pickle(os.path.join(dir_variant_plot, "dict_frequency_type_to_mean_line.pkl"))
 dict_frequency_type_to_saturation_points = load_pickle(os.path.join(dir_variant_plot, "dict_frequency_type_to_saturation_points.pkl"))
 
+# Same hue family per class as before (purple / vermillion / orange / green /
+# blue / indigo), re-stepped so that all 28 pairs - curves cross, so every pair
+# can touch - clear dE >= 15 normal, >= 10 protan/deutan, >= 9 tritan.
+# Doubleton is lilac rather than wine: wine is the Novel / 10K colour of panels
+# A and C, and the two must not read as the same key (dE 22.5 apart).
 dict_frequency_palette = {
-    "Total": "#8a8a8aff",
-    "Singleton": "#000000ff",
-    "Doubleton": "#78004A",
-    "Extremely Rare": "#cb181d",
-    "Very Rare": "#ff7b00",
-    "Rare": "#0B8100",
-    "Common": "#0026ff",
-    "Very Common": "#3900e3"
+    "Total": "#999999",
+    "Singleton": "#000000",
+    "Doubleton": "#B16CC3",
+    "Extremely Rare": "#D55E00",
+    "Very Rare": "#E69F00",
+    "Rare": "#11856F",
+    "Common": "#42B7F7",
+    "Very Common": "#332288"
 }
 
 list_frequency_type = ["Total", "Singleton", "Doubleton", "Extremely Rare", "Very Rare", "Rare", "Common", "Very Common"]
@@ -177,8 +222,10 @@ for frequency_cat in list_frequency_type:
         lw = 4
         zord = 5
 
+    # Opaque lines: the palette was validated at full opacity, and alpha blending
+    # with the white ground or a crossing curve would pull neighbours together.
     axB.plot(list_samples, mean_line, color=dict_frequency_palette[frequency_cat],
-         linewidth=lw, label=display_label_map.get(frequency_cat, frequency_cat), alpha=0.7)
+         linewidth=lw, label=display_label_map.get(frequency_cat, frequency_cat), zorder=zord)
     if max(list_samples) > max_samples:
         max_samples = max(list_samples)
 axB.set_xlabel("Sample Count", fontsize=plt.rcParams["font.size"], weight="bold")
@@ -208,11 +255,11 @@ agg1 = df1.groupby("AF_bin", observed=True)["Rsq"].mean().reset_index()
 agg2 = df2.groupby("AF_bin", observed=True)["Rsq"].mean().reset_index()
 agg3 = df3.groupby("AF_bin", observed=True)["Rsq"].mean().reset_index()
 
-sns.lineplot(data=agg3, x="AF_bin", y="Rsq", color="crimson", marker="o", markeredgecolor="k", markersize=8, linewidth=4, ax=axC, label="10K", zorder=5)
+sns.lineplot(data=agg3, x="AF_bin", y="Rsq", color=dict_panel_color["10K"], marker=dict_panel_marker["10K"], markeredgecolor="k", markersize=9, linewidth=4, ax=axC, label="10K", zorder=5)
 
-sns.lineplot(data=agg2, x="AF_bin", y="Rsq", color="limegreen", marker="o", markeredgecolor="k", markersize=8, linewidth=4, ax=axC, label="4K", zorder=4)
+sns.lineplot(data=agg2, x="AF_bin", y="Rsq", color=dict_panel_color["4K"], marker=dict_panel_marker["4K"], markeredgecolor="k", markersize=9, linewidth=4, ax=axC, label="4K", zorder=4)
 
-sns.lineplot(data=agg1, x="AF_bin", y="Rsq", color="dodgerblue", marker="o", markeredgecolor="k", markersize=8, linewidth=4, ax=axC, label="1K", zorder=3)
+sns.lineplot(data=agg1, x="AF_bin", y="Rsq", color=dict_panel_color["1K"], marker=dict_panel_marker["1K"], markeredgecolor="k", markersize=10, linewidth=4, ax=axC, label="1K", zorder=3)
 
 axC.set_xlabel("Alt allele frequency (%)", fontsize=plt.rcParams["font.size"], weight="bold")
 axC.set_ylabel("Aggregated R²", fontsize=plt.rcParams["font.size"], weight="bold")
@@ -251,7 +298,7 @@ ax_inset = inset_axes(
 bars = ax_inset.barh(
     ["1K", "4K", "10K"],
     num_variants,
-    color=["dodgerblue", "limegreen", "crimson"],
+    color=[dict_panel_color[panel] for panel in ["1K", "4K", "10K"]],
     edgecolor="k",
     linewidth=1.2,
     height=1
@@ -262,9 +309,9 @@ for i, bar in enumerate(bars):
         bar.get_width() / 2,
         bar.get_y() + bar.get_height() / 2,
         f"{num_variants[i]:,}",
-        ha="center", 
+        ha="center",
         va="center",
-        color="white", 
+        color=text_color_on(bar.get_facecolor()),
         weight="bold", 
         fontsize=15
     )
@@ -292,8 +339,8 @@ ax_inset.tick_params(axis="x", labelsize=14)
 ratio_10K_4K = (agg3["Rsq"] - agg2["Rsq"])/agg2["Rsq"]*100
 ratio_10K_1K = (agg3["Rsq"] - agg1["Rsq"])/agg1["Rsq"]*100
 x_positions = range(len(agg1))
-axD.plot(x_positions, ratio_10K_4K, color="orange", marker="o", markeredgecolor="k", markersize=8, label="10K / 4K")
-axD.plot(x_positions, ratio_10K_1K, color="purple", marker="o", markeredgecolor="k", markersize=8, label="10K / 1K")
+axD.plot(x_positions, ratio_10K_4K, color=dict_panel_color["4K"], marker=dict_panel_marker["4K"], markeredgecolor="k", markersize=9, linewidth=2.5, label="10K / 4K")
+axD.plot(x_positions, ratio_10K_1K, color=dict_panel_color["1K"], marker=dict_panel_marker["1K"], markeredgecolor="k", markersize=10, linewidth=2.5, label="10K / 1K")
 axD.set_xticks(x_positions)
 axD.set_xticklabels(labels, rotation=45, ha="right")
 axD.set_ylabel("R² improvement (%)", weight="bold")
@@ -321,7 +368,7 @@ for label, (start, end) in cat_ranges.items():
 
 plt.tight_layout()
 
-dir_figure = f"{PROJECT_DIR}/Analysis/Revision/Draw_Figure/Figures"
+dir_figure = f"{PROJECT_DIR}/Analysis/Revision/Draw_Figure_ver20260929/Figures"
 os.makedirs(dir_figure, exist_ok=True)
 fig.savefig(os.path.join(dir_figure, "Figure2.png"), dpi=300, bbox_inches="tight")
 fig.savefig(os.path.join(dir_figure, "Figure2.pdf"), bbox_inches="tight")

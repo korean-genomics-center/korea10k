@@ -34,22 +34,23 @@ import pandas as pd
 import matplotlib as mpl
 from matplotlib import pyplot as plt
 from matplotlib.patches import Patch
+from matplotlib.transforms import blended_transform_factory
 from korea10k.config import PROJECT_DIR
 
-dir_chip_overlap = f"{PROJECT_DIR}/Analysis/Revision/Draw_Figure/Data/Chip_Overlap"
+dir_root = f"{PROJECT_DIR}/Analysis/Revision/Draw_Figure_ver20260929"
+dir_chip_overlap = os.path.join(dir_root, "Data", "Chip_Overlap")
 dir_figure_source = os.path.join(dir_chip_overlap, "Figure_Source")
-dir_figure_out = f"{PROJECT_DIR}/Analysis/Revision/Draw_Figure/Figures"
+dir_figure_out = os.path.join(dir_root, "Figures")
 os.makedirs(dir_figure_out, exist_ok=True)
 
 path_class = os.path.join(dir_figure_source, "AF_Class_Count.tsv")
 path_cumul = os.path.join(dir_figure_source, "AF_Cumulative.tsv")
 path_summary_chip = os.path.join(dir_chip_overlap, "Summary.CpG_disappeared.AC1.ChipOverlap.tsv")
 path_summary_clock = os.path.join(dir_chip_overlap, "Summary.CpG_disappeared.AC1.AgeClockOverlap.tsv")
-path_genotype_beta = (f"{PROJECT_DIR}/Analysis/Revision/Draw_Figure/Data/"
-                      "Methylation_Change/per_cpg_beta_by_genotype.tsv")
+path_genotype_beta = os.path.join(dir_root, "Data", "Methylation_Change", "per_cpg_beta_by_genotype.tsv")
 
-path_out_png = os.path.join(dir_figure_out, "Figure.Chip_Overlap.CpG_disappeared.Common_First.png")
-path_out_pdf = os.path.join(dir_figure_out, "Figure.Chip_Overlap.CpG_disappeared.Common_First.pdf")
+path_out_png = os.path.join(dir_figure_out, "Figure4.png")
+path_out_pdf = os.path.join(dir_figure_out, "Figure4.pdf")
 
 #%%
 # --- Palette / cohort constants --------------------------------------------
@@ -147,6 +148,14 @@ color_grid = "#e1e0d9"
 color_axis = "#0b0b0b"       # axis spines and tick marks, black
 color_guide = "#c3c2b7"      # AF cut-off guide lines, kept recessive
 
+# Colour keys. Reviewer: "the color scale in Figure 4 is quite small and hard to
+# read" - the keys were 8 pt with 1.1-em swatches; they are now set well above
+# the tick labels (~9 pt once the 12-in figure is printed at 180 mm), with
+# swatches and line samples large enough to read the hue.
+size_key_text = 15.0
+size_key_title = 16.0
+size_key_text_panel = 14.0   # key inside panel F, where it shares space with bars
+
 mpl.rcParams.update({
     "font.family": "sans-serif",
     "font.sans-serif": ["DejaVu Sans"],
@@ -235,8 +244,18 @@ def format_count(value, _pos=None):
     return f"{value:g}"
 
 
-def place_end_labels(ax, list_label_y_color, x_data, min_gap_frac=0.075):
-    """Direct-label line ends, nudged apart so no two labels collide."""
+def place_end_labels(ax, list_label_y_color, x_axes=1.17, min_gap_frac=0.075):
+    """Direct-label line ends, nudged apart so no two labels collide, with a
+    leader arrow from each label back to the end of the curve it names.
+
+    The arrow is what disambiguates a nudged label: several cohorts end within a
+    few hundred sites of each other, so the label a curve owns is often not the
+    one closest to it. x is taken in axes fractions (1.0 = the right spine, where
+    every curve ends) and y in data units, so the geometry holds at any panel
+    size; the arrow is drawn in the curve's own hue and the text stays black.
+    The labels share one x, so every arrow runs inside the gutter between the
+    spine and that column and no arrow can cross another label's text.
+    """
     y_low, y_high = ax.get_ylim()
     min_gap = (y_high - y_low) * min_gap_frac
     list_sorted = sorted(list_label_y_color, key=lambda item: item[1])
@@ -244,11 +263,29 @@ def place_end_labels(ax, list_label_y_color, x_data, min_gap_frac=0.075):
     y_prev = -np.inf
     for label, y_value, color in list_sorted:
         y_draw = max(y_value, y_prev + min_gap)
-        list_placed.append((label, y_draw, color))
+        list_placed.append((label, y_value, y_draw, color))
         y_prev = y_draw
-    for label, y_draw, color in list_placed:
-        ax.text(x_data, y_draw, f" {label}", ha="left", va="center",
-                fontsize=9.5, color=color_ink, clip_on=False)
+
+    transform_end = blended_transform_factory(ax.transAxes, ax.transData)
+    for label, y_value, y_draw, color in list_placed:
+        ax.annotate(
+            label,
+            xy=(1.0, y_value), xycoords=transform_end,
+            xytext=(x_axes, y_draw), textcoords=transform_end,
+            ha="left", va="center", fontsize=9.5, color=color_ink,
+            annotation_clip=False, zorder=6,
+            # The white box is the label's own footprint: matplotlib uses it as
+            # patchA, so the tail stops at the edge of the text instead of
+            # running under the glyphs, and anything that still reaches it is
+            # painted over. Leaving patchA unset (or None) is what made the
+            # arrow cross the text. The box sits in the gutter outside the
+            # axes, so it hides no data or grid.
+            bbox=dict(boxstyle="square,pad=0.18", facecolor=color_surface,
+                      edgecolor="none"),
+            arrowprops=dict(arrowstyle="-|>", color=color, linewidth=1.0,
+                            mutation_scale=8, shrinkA=0.0, shrinkB=0.5,
+                            connectionstyle="arc3,rad=0"),
+        )
     return list_placed
 
 
@@ -330,7 +367,7 @@ def draw_cumulative_curves(ax, chip):
         ax.text(af_cut, y_max * 1.12, name, ha="center", va="bottom",
                 fontsize=8.5, color=color_ink)
 
-    place_end_labels(ax, list_end, x_data=2.7e-5)
+    place_end_labels(ax, list_end)
     ax.text(0.02, 0.97, f"{n_site_chip:,} CpG sites on array",
             transform=ax.transAxes, ha="left", va="top",
             fontsize=8.5, color=color_ink)
@@ -371,7 +408,9 @@ def draw_ageclock_panel(ax):
     ax.set_yticks([])
 
     ax.set_xlabel("Clock CpG markers lost (%)")
-    ax.set_ylim(len(list_clocks) - 0.45, -0.72)   # first clock at the top
+    # First clock at the top. The strip above the first clock title (-0.80 to
+    # -0.5) holds the colour key, clear of the Horvath title.
+    ax.set_ylim(len(list_clocks) - 0.45, -0.80)
     ax.set_xlim(0, 34)
     ax.set_xticks([0, 5, 10, 15, 20, 25, 30])
     style_axis(ax, grid_axis='x')
@@ -383,8 +422,9 @@ def draw_ageclock_panel(ax):
                        label="Common variant (AF > 0.01)"),
                  Patch(facecolor=color_af_rare, edgecolor=color_surface,
                        label="Rare variant (AF $\\leq$ 0.01)")],
-        loc="upper right", bbox_to_anchor=(1.0, 0.995),
-        frameon=False, handlelength=1.2, labelspacing=0.5, prop={'size': 8},
+        loc="upper right", bbox_to_anchor=(1.0, 1.0),
+        frameon=False, handlelength=1.8, handleheight=1.1, labelspacing=0.4,
+        borderaxespad=0.1, borderpad=0.2, prop={'size': size_key_text_panel},
     )
     ax.add_artist(legend_af)
 
@@ -437,7 +477,9 @@ def draw_genotype_beta_panel(ax):
 
 #%%
 # --- Compose ---------------------------------------------------------------
-fig = plt.figure(figsize=(12.0, 18.3))
+# 1.6 in taller than the original 18.3 in, all of it spent on the band that
+# holds the enlarged colour keys under panels B-E; the panels keep their size.
+fig = plt.figure(figsize=(12.0, 19.9))
 # Two grids so the band between the A-D block and panel E can hold the shared
 # legends at a fixed height, independent of the subplot spacing.
 # A-D occupy a narrower left column; E stands as a tall panel to their right.
@@ -447,7 +489,7 @@ fig = plt.figure(figsize=(12.0, 18.3))
 # rows 1-4 are the four arrays.
 grid_chip = fig.add_gridspec(
     5, 2, width_ratios=[1.0, 0.78], height_ratios=[0.82, 1.0, 1.0, 1.0, 1.0],
-    left=0.085, right=0.535, top=0.956, bottom=0.086,
+    left=0.085, right=0.535, top=0.960, bottom=0.160,
     hspace=0.50, wspace=0.34,
 )
 ax_geno = fig.add_subplot(grid_chip[0, :])
@@ -498,36 +540,53 @@ fig.text(box_clock.x0 + 0.5 * box_clock.width, box_clock.y1 + 0.016,
          "Epigenetic-clock CpG markers lost",
          fontsize=11.5, fontweight="bold", ha="center", va="bottom", color=color_ink)
 
-# Shared legends, stated once in the band under the A-D block: the AF classes
-# key the stacked bars, the cohort hues key the cumulative curves.
-box_a = dict_panel_to_axes["HM27"][0].get_position()
-box_d = dict_panel_to_axes["MSA"][1].get_position()
-x_centre = (box_a.x0 + box_d.x1) / 2
+# Shared legends, stated once in the band under the B-E block: the AF classes
+# key the stacked bars, the cohort hues key the cumulative curves. At this key
+# size the two do not fit side by side, so they are stacked and centred on the
+# figure. Their heights come from the rendered text, not from guesses: the band
+# starts just below the lowest tick label / axis label of the panels above.
+def figure_box(artist, renderer):
+    return artist.get_window_extent(renderer).transformed(fig.transFigure.inverted())
+
+
+def style_key_title(legend):
+    legend.get_title().set_fontsize(size_key_title)
+    legend.get_title().set_fontweight("bold")
+    legend.get_title().set_color(color_ink)
+
+
+renderer = fig.canvas.get_renderer()
+list_bottom_axes = list(dict_panel_to_axes["MSA"]) + [ax_clock]
+y_key_top = min(ax.get_tightbbox(renderer).transformed(fig.transFigure.inverted()).y0
+                for ax in list_bottom_axes) - 0.008
 
 legend_class = fig.legend(
     handles=[Patch(facecolor=dict_af_class_to_color[name], edgecolor=color_surface,
                    label=dict_af_class_to_label[name])
              for name in list_af_class],
     title="Allele frequency",
-    loc="upper left", bbox_to_anchor=(0.020, 0.050),
-    frameon=False, ncol=2, handlelength=1.1, columnspacing=1.2,
-    prop={'size': 8},
+    loc="upper center", bbox_to_anchor=(0.5, y_key_top),
+    frameon=False, ncol=2, handlelength=2.2, handleheight=1.3, columnspacing=2.0,
+    labelspacing=0.45, borderpad=0.2, prop={'size': size_key_text},
     alignment="center",
 )
+style_key_title(legend_class)
+
 legend_pop = fig.legend(
-    handles=[plt.Line2D([0], [0], color=dict_pop_to_color[pop], linewidth=2.6,
-                        label=dict_pop_to_label[pop])
+    handles=[plt.Line2D([0], [0], color=dict_pop_to_color[pop], linewidth=5.0,
+                        solid_capstyle="butt", label=dict_pop_to_label[pop])
              for pop in list_pops],
     title="Population",
-    loc="upper right", bbox_to_anchor=(0.535, 0.050),
-    frameon=False, ncol=3, handlelength=1.6, columnspacing=1.2,
-    prop={'size': 8},
+    loc="upper center", bbox_to_anchor=(0.5, figure_box(legend_class, renderer).y0 - 0.006),
+    frameon=False, ncol=len(list_pops), handlelength=2.6, columnspacing=2.0,
+    borderpad=0.2, prop={'size': size_key_text},
     alignment="center",
 )
-for legend in (legend_class, legend_pop):
-    legend.get_title().set_fontsize(9.5)
-    legend.get_title().set_fontweight("bold")
-    legend.get_title().set_color(color_ink)
+style_key_title(legend_pop)
+
+box_pop = figure_box(legend_pop, renderer)
+if box_pop.y0 < 0.0 or box_pop.x0 < 0.0 or box_pop.x1 > 1.0:
+    print(f"WARNING: colour keys overflow the figure ({box_pop}); enlarge figsize or shrink size_key_text")
 
 fig.savefig(path_out_png, dpi=300)
 fig.savefig(path_out_pdf)

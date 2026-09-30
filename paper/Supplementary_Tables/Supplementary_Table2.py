@@ -40,5 +40,7 @@ df_codebook = pd.read_excel(path_codebook, engine="openpyxl")
 df_codebook_filt = df_codebook[["Category_Eng", "Question_Tag", "Question_Text_Eng"]]
 df_codebook_filt_dropdup = df_codebook_filt.drop_duplicates(subset=["Question_Tag"])
 df_questions = df_codebook_filt_dropdup.reset_index(drop=True)
-df_questions.to_excel(f"{WORK_DIR}/genome/paper/Supplementary_Table2.xlsx")
+dir_table = f"{PROJECT_DIR}/Analysis/Revision/Draw_Figure_ver20260929/Data/Supplementary_Tables"
+os.makedirs(dir_table, exist_ok=True)
+df_questions.to_excel(os.path.join(dir_table, "Supplementary_Table2.xlsx"))
 # %%

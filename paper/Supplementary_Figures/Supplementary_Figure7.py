@@ -27,9 +27,9 @@ import matplotlib as mpl
 from matplotlib import pyplot as plt
 from korea10k.config import PROJECT_DIR
 
-path_genotype_beta = (f"{PROJECT_DIR}/Analysis/Revision/Draw_Figure/Data/"
+path_genotype_beta = (f"{PROJECT_DIR}/Analysis/Revision/Draw_Figure_ver20260929/Data/"
                       "Methylation_Change/per_cpg_beta_by_genotype.tsv")
-dir_figure_out = f"{PROJECT_DIR}/Analysis/Revision/Draw_Figure/Figures"
+dir_figure_out = f"{PROJECT_DIR}/Analysis/Revision/Draw_Figure_ver20260929/Figures"
 os.makedirs(dir_figure_out, exist_ok=True)
 
 path_out_png = os.path.join(dir_figure_out, "Figure.Beta_Change_by_AF.png")

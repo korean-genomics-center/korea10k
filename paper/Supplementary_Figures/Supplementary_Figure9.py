@@ -28,8 +28,8 @@ import matplotlib as mpl
 from matplotlib import pyplot as plt
 from korea10k.config import PROJECT_DIR
 
-dir_chip_overlap = f"{PROJECT_DIR}/Analysis/Revision/Draw_Figure/Data/Chip_Overlap"
-dir_figure_out = f"{PROJECT_DIR}/Analysis/Revision/Draw_Figure/Figures"
+dir_chip_overlap = f"{PROJECT_DIR}/Analysis/Revision/Draw_Figure_ver20260929/Data/Chip_Overlap"
+dir_figure_out = f"{PROJECT_DIR}/Analysis/Revision/Draw_Figure_ver20260929/Figures"
 os.makedirs(dir_figure_out, exist_ok=True)
 
 path_out_table = os.path.join(dir_figure_out, "Figure.UpSet.Intersections.tsv")
