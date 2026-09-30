@@ -1,0 +1,22 @@
+{
+  "upload_type": "software",
+  "title": "Korea10K: analysis and figure-generation code",
+  "description": "<p>Analysis and figure-generation code for <i>Korea10K: 10,239 whole genomes with multiomic and clinical health information as the Korean multiomics reference dataset</i>.</p><p>The repository contains the pipelines for population structure (PCA, ADMIXTURE), sequencing depth, HLA typing comparison, imputation reference panel construction and evaluation, variant discovery saturation, and the effect of CpG-eliminating variants on methylation arrays, together with the scripts that render the manuscript figures and tables.</p><p>This is a code release, not a runnable end-to-end pipeline: the scripts expect the project's genotype, methylation and metadata files to exist on disk and call external tools (PLINK 2, ADMIXTURE, SHAPEIT5, Minimac3/4, bcftools, GATK, GLIMPSE2) that must be installed separately.</p>",
+  "creators": [
+    {
+      "name": "Jeon, Sungwon",
+      "affiliation": "Korean Genomics Center, UNIST, Republic of Korea",
+      "orcid": "0000-0002-2729-9087"
+    }
+  ],
+  "license": "MIT",
+  "access_right": "open",
+  "keywords": [
+    "Korea10K",
+    "whole-genome sequencing",
+    "population genomics",
+    "imputation reference panel",
+    "DNA methylation",
+    "multiomics"
+  ]
+}

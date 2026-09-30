@@ -1,0 +1,19 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+type: software
+title: "Korea10K: analysis and figure-generation code"
+version: 1.0.0
+license: MIT
+repository-code: "https://github.com/korean-genomics-center/korea10k"
+authors:
+  - family-names: Jeon
+    given-names: Sungwon
+    affiliation: "Korean Genomics Center, UNIST, Republic of Korea"
+    orcid: "https://orcid.org/0000-0002-2729-9087"
+keywords:
+  - Korea10K
+  - whole-genome sequencing
+  - population genomics
+  - imputation reference panel
+  - DNA methylation
+  - multiomics
